@@ -15,7 +15,7 @@ int main() {
         printf("%s", buffer);
         // TODO: Send request to validator server
     }
-    // TODO: Wait for responses from validator serven
+    // TODO: Wait for responses from validator server
 
     return 0;
 }
