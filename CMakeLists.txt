@@ -18,3 +18,6 @@ add_library(err src/err.c)
 add_executable(validator src/validator.c)
 add_executable(tester src/tester.c)
 add_executable(run src/run.c)
+
+# TODO: Remove this after project is finished:
+add_executable(experiments experiments/struct_memory_alloc_test.c)
