@@ -11,14 +11,8 @@
 #include <stdlib.h>
 #include <limits.h>
 
-
-#ifndef NDEBUG
-const bool debug = true;
-
-#else
+// Set this to true for more info
 const bool debug = false;
-
-#endif /* def NDEBUG */
 
 // PASTE IMPLEMENTATION HERE -------------------------------------------------------------------------------------------
 
@@ -34,8 +28,8 @@ typedef struct automaton {
     size_t states_size; /// size of all states in automaton
     size_t universal_states_size; /// 0..universal_states_size-1 := universal states, universal_states_size..states_size-1 := existential states
     char starting_state; /// starting state for validation
-    const char * acceptable_states; /// each char represents one state, states are indexed from 0
-    const char * transitions[TRANSITIONS_MAX_SIZE]; /// transitions[state*(alphabet_size) + letter_normalized] := string containing all possible following states (as chars)
+    char acceptable_states[STATES_MAX_SIZE]; /// each char represents one state, states are indexed from 0
+    char transitions[TRANSITIONS_MAX_SIZE][STATES_MAX_SIZE]; /// transitions[state*(alphabet_size) + letter_normalized] := string containing all possible following states (as chars)
     size_t transitions_size; /// remembered for quicker iteration
 } automaton;
 
@@ -135,30 +129,48 @@ bool accept(const automaton * a, const char * word) {
 
 
 automaton * test_load_auto() {
+    // allocate memory
     automaton * ans = (automaton*)malloc(sizeof(automaton));
+    if(ans == NULL) {
+        printf("Invalid malloc, cannot load automaton.\n");
+        exit(1);
+    }
 
+    // create temoprary arrays for loading data TODO: Load to structure directly
     char acceptable_states[STATES_MAX_SIZE];
-    char * transitions[TRANSITIONS_MAX_SIZE];
+    char transitions[TRANSITIONS_MAX_SIZE][STATES_MAX_SIZE];
+    // clean arrays to prevent weird errors
+    int i,j;
+    for(i=0; i<STATES_MAX_SIZE; i++) {
+        ans->acceptable_states[0] = '\0';
+        acceptable_states[0] = '\0';
+    }
+    for(j=0; j<TRANSITIONS_MAX_SIZE; j++) {
+        ans->transitions[j][0] = '\0';
+        transitions[j][0] = '\0';
+    }
 
+    // load structure size parameters
     unsigned int n, a, u, q, f;
     scanf("%d %d %d %d %d\n", &n, &a, &u, &q, &f);
     ans->alphabet_size = n;
     ans->states_size = q;
     ans->universal_states_size = u;
-
+    ans->transitions_size = 0;
+    // load temporary arrays
     int c_int;
     char c_char;
-    int j;
     int state;
     int letter;
     char transition_buff[STATES_MAX_SIZE];
+    transition_buff[0] = '\0';
     char * input_buff = NULL;
     char * input_buff_freeable = NULL;
     int input_buff_offset = 0;
     size_t input_buff_len = 0;
-    // line #0 is already loaded, according to provided examples
-    for(int i=1; i<n; i++) {
+    for(i=1; i<n; i++) {
         switch(i) {
+            // 0 has already been loaded
             case 1:
                 // loading starting state
                 scanf("%d\n", &c_int);
@@ -208,7 +220,8 @@ automaton * test_load_auto() {
                     input_buff += input_buff_offset;
                 }
                 transition_buff[j] = '\0';
-                transitions[state*(ans->alphabet_size) + letter] = transition_buff;
+                strcpy(transitions[state*(ans->alphabet_size) + letter], transition_buff);
+                ans->transitions_size++;
 
                 // clean buffers
                 transition_buff[0] = '\0';
@@ -220,18 +233,21 @@ automaton * test_load_auto() {
                 break;
         }
     }
-    // TODO: Is there a cleaner way of writing to const char * ???
-    strcpy((char *) ans->acceptable_states, acceptable_states);
-    for(int i=0; i<TRANSITIONS_MAX_SIZE; i++) {
-        strcpy((char *) ans->transitions[i], transitions[i]);
+    // copy loaded values into automaton
+    strcpy(ans->acceptable_states, acceptable_states);
+    for(int i=0; i<ans->transitions_size; i++) {
+        strcpy(ans->transitions[i], transitions[i]);
+        if(debug) {
+            printf("successfully copied %d to structure\n", i);
+        }
     }
     return ans;
 }
 
 void test_print_mem_data(const automaton * a) {
     printf("Whole struct:\n");
-    printf("%p\n", &a);
-    printf("%zu\n", sizeof(a));
+    printf("%p\n", a);
+    printf("%zu\n", sizeof(*a));
     printf("Single elements:\n");
     printf("%p\n", (void *) a->alphabet_size);
     printf("%zu\n", sizeof(a->alphabet_size));
@@ -245,11 +261,6 @@ void test_print_mem_data(const automaton * a) {
     printf("%zu\n", sizeof(a->acceptable_states));
     printf("%p\n", (void *) a->transitions);
     printf("%zu\n", sizeof(a->transitions));
-    printf("Transitions:\n");
-    for(size_t i=0; i<TRANSITIONS_MAX_SIZE; i++) {
-        printf("%p ", &(a->transitions[i]));
-    }
-    printf("\nSize of 1 transition: %zu\n", sizeof(a->transitions[0]));
     printf("%p\n", (void *) a->transitions_size);
     printf("%zu\n", sizeof(a->transitions_size));
 }
