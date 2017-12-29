@@ -9,7 +9,6 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <limits.h>
 
 // Set this to true for more info
 const bool debug = true;

@@ -7,6 +7,8 @@
 #include <memory.h>
 #include <assert.h>
 
+// TODO: Unify structs and #defines in a library
+
 #define STR_LEN_MAX 1000
 #define ALPHABET_MAX_SIZE ('z'-'a')
 #define STATES_MAX_SIZE 100
