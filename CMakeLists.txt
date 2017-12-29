@@ -13,7 +13,8 @@ macro (add_executable _name)
     endif()
 endmacro()
 
-add_library(err src/err.c)
+add_library(err STATIC src/err.h src/err.c)
+add_library(automaton STATIC src/automaton.h src/automaton.c)
 
 # release executables
 add_executable(validator src/validator.c)
