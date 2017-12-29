@@ -19,9 +19,8 @@ typedef struct automaton {
     size_t states_size; /// size of all states in automaton
     size_t universal_states_size; /// 0..universal_states_size-1 := universal states, universal_states_size..states_size-1 := existential states
     char starting_state; /// starting state for validation
-    const char * acceptable_states; /// each char represents one state, states are indexed from 0
-    const char * transitions[TRANSITIONS_MAX_SIZE]; /// transitions[state*(alphabet_size) + letter_normalized] := string containing all possible following states (as chars)
-    size_t transitions_size; /// remembered for quicker iteration
+    char acceptable_states[STATES_MAX_SIZE]; /// '\0'-terminated, each char represents one state, states are indexed from 0
+    char transitions[TRANSITIONS_MAX_SIZE][STATES_MAX_SIZE]; /// transitions[state*(alphabet_size) + letter_normalized] := '\0'-terminated string containing all possible following states (as chars)
 } automaton;
 
 /// checks if given state is universal in a given automata
@@ -64,7 +63,7 @@ const char * get_following_states(const automaton * a, const char state, const c
     assert(word_letter <= 'z');
 
     // TODO: Might need to normalize the alphabet to start from 0
-    return a->transitions[state*ALPHABET_MAX_SIZE + word_letter];
+    return a->transitions[state*a->alphabet_size + word_letter];
 }
 
 /// recursive helper for word validation, use 'accept' function
@@ -94,7 +93,7 @@ bool accept_rec(const automaton *a, const char *word, const char *state) {
         assert(i == following_states_length);
         return false; // no state was accepted
     }
-    // need to accept_rec all of following states
+    assert(is_universal(a, state[depth]));
     int i;
     for(i=0; i<following_states_length; i++) {
         // TODO: Unit test this (!!!)
