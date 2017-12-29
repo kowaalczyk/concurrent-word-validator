@@ -2,18 +2,31 @@
 // Created by kowal on 28.12.17.
 //
 
-// PASTE IMPLEMENTATION HERE -------------------------------------------------------------------------------------------
 
 #include <stdbool.h>
 #include <wchar.h>
 #include <memory.h>
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+
+#ifndef NDEBUG
+const bool debug = true;
+
+#else
+const bool debug = false;
+
+#endif /* def NDEBUG */
+
+// PASTE IMPLEMENTATION HERE -------------------------------------------------------------------------------------------
+
 
 // NOTE: Using smaller data in order to make tests results visible
-#define STR_LEN_MAX 5
-#define ALPHABET_MAX_SIZE ('c'-'a')
-#define STATES_MAX_SIZE 3
+#define STR_LEN_MAX 1000
+#define ALPHABET_MAX_SIZE ('z'-'a')
+#define STATES_MAX_SIZE 100
 #define TRANSITIONS_MAX_SIZE (STATES_MAX_SIZE * ALPHABET_MAX_SIZE)
 
 typedef struct automaton {
@@ -121,24 +134,124 @@ bool accept(const automaton * a, const char * word) {
 // TEST ----------------------------------------------------------------------------------------------------------------
 
 
-const automaton * test_load_auto() {
-//    size_t alphabet_size, states_size, universal_states_size;
-//
-//
-//    unsigned int n, a, u, q, f;
-//    scanf("%d %d %d %d %d\n", &n, &a, &u, &q, &f);
-//    char starting_state;
-//
-//    for(int i=0; i<n; i++) {
-//        switch(i) {
-//            case 0:
-//                scanf("%c\n", &starting_state);
-//                break;
-//            case 1:
-//
-//        }
-//    }
-    return NULL;
+automaton * test_load_auto() {
+    automaton * ans = (automaton*)malloc(sizeof(automaton));
+
+    char acceptable_states[STATES_MAX_SIZE];
+    char * transitions[TRANSITIONS_MAX_SIZE];
+
+    unsigned int n, a, u, q, f;
+    scanf("%d %d %d %d %d\n", &n, &a, &u, &q, &f);
+    ans->alphabet_size = n;
+    ans->states_size = q;
+    ans->universal_states_size = u;
+
+    int c_int;
+    char c_char;
+    int j;
+    int state;
+    int letter;
+    char transition_buff[STATES_MAX_SIZE];
+    char * input_buff = NULL;
+    char * input_buff_freeable = NULL;
+    int input_buff_offset = 0;
+    size_t input_buff_len = 0;
+    // line #0 is already loaded, according to provided examples
+    for(int i=1; i<n; i++) {
+        switch(i) {
+            case 1:
+                // loading starting state
+                scanf("%d\n", &c_int);
+                assert(0 <= c_int <= CHAR_MAX);
+                ans->starting_state = (char) c_int;
+                break;
+            case 2:
+                // loading acceptable states
+                for(j=0; j<f; j++) {
+                    scanf("%d\n", &c_int);
+                    assert(0 <= c_int <= CHAR_MAX);
+                    acceptable_states[j] = (char) c_int;
+                }
+                acceptable_states[f] = '\0'; // Setting end of string manually
+                break;
+            default:
+                // loading transition function
+                assert(transition_buff[0] == '\0');
+                assert(input_buff == NULL);
+                assert(input_buff_offset == 0);
+                assert(input_buff_len == 0);
+                assert(input_buff_freeable == NULL);
+                getline(&input_buff, &input_buff_len, stdin);
+                input_buff_freeable = input_buff;
+
+                // Scanning state and letter separately in order to keep track of the offset
+                sscanf(input_buff, "%d %n", &state, &input_buff_offset);
+                input_buff += input_buff_offset;
+                sscanf(input_buff, "%c %n", &c_char, &input_buff_offset);
+                input_buff += input_buff_offset;
+                assert(input_buff_offset > 0);
+
+                // letter has to be normalized to fit in 0..ALPHABET_MAX_SIZE
+                letter = (int)(c_char-'a');
+                if(debug) {
+                    printf("\nLine: %d State: %d Letter: %d\n", i, state, letter);
+                }
+
+                // reading transition function for given <state, letter>
+                j = 0;
+                while(sscanf(input_buff, "%d %n", &c_int, &input_buff_offset) == 1) {
+                    transition_buff[j] = (char)(c_int);
+                    if(debug) {
+                        printf("Saved: %d at: %d\n", (int)transition_buff[j], j);
+                    }
+                    j++;
+                    input_buff += input_buff_offset;
+                }
+                transition_buff[j] = '\0';
+                transitions[state*(ans->alphabet_size) + letter] = transition_buff;
+
+                // clean buffers
+                transition_buff[0] = '\0';
+                free(input_buff_freeable);
+                input_buff = NULL;
+                input_buff_freeable = NULL;
+                input_buff_offset = 0;
+                input_buff_len = 0;
+                break;
+        }
+    }
+    // TODO: Is there a cleaner way of writing to const char * ???
+    strcpy((char *) ans->acceptable_states, acceptable_states);
+    for(int i=0; i<TRANSITIONS_MAX_SIZE; i++) {
+        strcpy((char *) ans->transitions[i], transitions[i]);
+    }
+    return ans;
+}
+
+void test_print_mem_data(const automaton * a) {
+    printf("Whole struct:\n");
+    printf("%p\n", &a);
+    printf("%zu\n", sizeof(a));
+    printf("Single elements:\n");
+    printf("%p\n", (void *) a->alphabet_size);
+    printf("%zu\n", sizeof(a->alphabet_size));
+    printf("%p\n", (void *) a->states_size);
+    printf("%zu\n", sizeof(a->states_size));
+    printf("%p\n", (void *) a->universal_states_size);
+    printf("%zu\n", sizeof(a->universal_states_size));
+    printf("%c\n", a->starting_state);
+    printf("%zu\n", sizeof(a->starting_state));
+    printf("%p\n", (void *) a->acceptable_states);
+    printf("%zu\n", sizeof(a->acceptable_states));
+    printf("%p\n", (void *) a->transitions);
+    printf("%zu\n", sizeof(a->transitions));
+    printf("Transitions:\n");
+    for(size_t i=0; i<TRANSITIONS_MAX_SIZE; i++) {
+        printf("%p ", &(a->transitions[i]));
+    }
+    printf("\nSize of 1 transition: %zu\n", sizeof(a->transitions[0]));
+    printf("%p\n", (void *) a->transitions_size);
+    printf("%zu\n", sizeof(a->transitions_size));
 }
 
 int main() {
@@ -152,29 +265,11 @@ int main() {
             TRANSITIONS_MAX_SIZE
     };
 
-    printf("Whole struct:\n");
-    printf("%p\n", &a);
-    printf("%zu\n", sizeof(a));
-    printf("Single elements:\n");
-    printf("%p\n", (void *) a.alphabet_size);
-    printf("%zu\n", sizeof(a.alphabet_size));
-    printf("%p\n", (void *) a.states_size);
-    printf("%zu\n", sizeof(a.states_size));
-    printf("%p\n", (void *) a.universal_states_size);
-    printf("%zu\n", sizeof(a.universal_states_size));
-    printf("%c\n", a.starting_state);
-    printf("%zu\n", sizeof(a.starting_state));
-    printf("%p\n", (void *) a.acceptable_states);
-    printf("%zu\n", sizeof(a.acceptable_states));
-    printf("%p\n", (void *) a.transitions);
-    printf("%zu\n", sizeof(a.transitions));
-    printf("Transitions:\n");
-    for(size_t i=0; i<TRANSITIONS_MAX_SIZE; i++) {
-        printf("%p ", &(a.transitions[i]));
-    }
-    printf("\nSize of 1 transition: %zu\n", sizeof(a.transitions[0]));
-    printf("%p\n", (void *) a.transitions_size);
-    printf("%zu\n", sizeof(a.transitions_size));
+    automaton * b = test_load_auto();
 
+    test_print_mem_data(&a);
+    test_print_mem_data(b);
+
+    free(b);
     return 0;
 }
