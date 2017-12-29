@@ -15,9 +15,10 @@ endmacro()
 
 add_library(err src/err.c)
 
+# release executables
 add_executable(validator src/validator.c)
 add_executable(tester src/tester.c)
 add_executable(run src/run.c)
 
-# TODO: Remove this after project is finished:
-add_executable(experiments experiments/struct_memory_alloc_test.c)
+# test executables
+add_executable(struct_load_malloc_test test/struct_memory_alloc_test.c)
