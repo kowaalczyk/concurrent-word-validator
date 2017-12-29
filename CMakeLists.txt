@@ -23,3 +23,4 @@ add_executable(run src/run.c)
 
 # test executables
 add_executable(struct_load_malloc_test test/struct_memory_alloc_test.c)
+add_executable(seq_word_validation_test test/seq_word_validation_test.c)
