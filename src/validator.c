@@ -7,7 +7,7 @@
 #include <assert.h>
 #include "automaton.h"
 
-
+// TODO: Word validation fails due to (char)0 == '\0' => strlen is invalid !!!
 /// loads automaton from standard input, allocates memory should be freed later
 const automaton * load_data() {
     // iteration variables
@@ -38,7 +38,7 @@ const automaton * load_data() {
     }
 
     // load structure parameters
-    scanf("%d %d %d %d %d\n", &n, &a, &u, &q, &f);
+    scanf("%d %d %d %d %d\n", &n, &a, &q, &u, &f);
     ans->alphabet_size = n;
     ans->states_size = q;
     ans->universal_states_size = u;
@@ -51,13 +51,14 @@ const automaton * load_data() {
                 // loading starting state
                 scanf("%d\n", &c_int);
                 assert(0 <= c_int && c_int < ans->states_size);
-                ans->starting_state = (char) c_int;
+                ans->starting_state = (char) (c_int + STR_STORAGE_VAL_OFFSET); // offsetting states in strings, see automaton struct documentation
                 break;
             case 2:
                 // loading acceptable states
                 for(j=0; j<f; j++) {
                     scanf("%d\n", &c_int);
                     assert(0 <= c_int && c_int < ans->states_size);
+                    c_int += STR_STORAGE_VAL_OFFSET; // offsetting states in strings, see automaton struct documentation
                     ans->acceptable_states[j] = (char) c_int;
                 }
                 ans->acceptable_states[f] = '\0'; // Setting end of string manually
@@ -88,6 +89,7 @@ const automaton * load_data() {
                 size_t transition_pos = state * (ans->alphabet_size) + letter;
                 j = 0;
                 while(sscanf(input_buff, "%d %n", &c_int, &input_buff_offset) == 1) {
+                    c_int += STR_STORAGE_VAL_OFFSET; // offsetting states in strings, see automaton struct documentation
                     ans->transitions[transition_pos][j] = (char)(c_int);
                     j++;
                     input_buff += input_buff_offset;
