@@ -7,7 +7,6 @@
 #include <assert.h>
 #include "automaton.h"
 
-// TODO: Word validation fails due to (char)0 == '\0' => strlen is invalid !!!
 /// loads automaton from standard input, allocates memory should be freed later
 const automaton * load_data() {
     // iteration variables

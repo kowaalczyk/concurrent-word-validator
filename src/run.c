@@ -3,7 +3,6 @@
 //
 
 #include <stdbool.h>
-#include <wchar.h>
 #include <memory.h>
 #include <assert.h>
 #include "automaton.h"
