@@ -13,26 +13,29 @@
 
 
 /// checks if given state is universal in a given automata
-bool is_universal(const automaton * a, const char state) {
-    assert(state >= 0);
-    assert(state < a->states_size);
+bool is_universal(const automaton * a, char state) {
+    assert(state >= 0 + STR_STORAGE_VAL_OFFSET);
+    assert(state < a->states_size + STR_STORAGE_VAL_OFFSET);
 
+    state -= STR_STORAGE_VAL_OFFSET;
     return state < a->universal_states_size;
 }
 
 /// check if given state is existential in a given automata
-bool is_existential(const automaton * a, const char state) {
-    assert(state >= 0);
-    assert(state < a->states_size);
+bool is_existential(const automaton * a, char state) {
+    assert(state >= 0 + STR_STORAGE_VAL_OFFSET);
+    assert(state < a->states_size + STR_STORAGE_VAL_OFFSET);
 
+    state -= STR_STORAGE_VAL_OFFSET;
     return state >= a->universal_states_size;
 }
 
 /// iterates over acceptable states in automaton a, checking if the given state is acceptable, O(n)
-bool is_acceptable(const automaton * a, const char state) {
-    assert(state >= 0);
-    assert(state < a->states_size);
+bool is_acceptable(const automaton * a, char state) {
+    assert(state >= 0 + STR_STORAGE_VAL_OFFSET);
+    assert(state < a->states_size + STR_STORAGE_VAL_OFFSET);
 
+    state -= STR_STORAGE_VAL_OFFSET;
     size_t acceptable_states_length = strlen(a->acceptable_states);
     int i;
     for(i=0; i<acceptable_states_length; i++) {
@@ -45,13 +48,13 @@ bool is_acceptable(const automaton * a, const char state) {
 }
 
 /// returns string containing avaliable transitions (following states for current state and currently processed word) for given state in given automaton
-const char * get_following_states(const automaton * a, const char state, const char word_letter) {
-    assert(state >= 0);
-    assert(state < a->states_size);
+const char * get_following_states(const automaton * a, char state, char word_letter) {
+    assert(state >= 0 + STR_STORAGE_VAL_OFFSET);
+    assert(state < a->states_size + STR_STORAGE_VAL_OFFSET);
     assert(word_letter >= 'a');
     assert(word_letter <= 'z');
 
-    // TODO: Might need to normalize the alphabet to start from 0
+    state -= STR_STORAGE_VAL_OFFSET;
     return a->transitions[state*a->alphabet_size + word_letter];
 }
 
@@ -72,7 +75,11 @@ bool accept_rec(const automaton *a, const char *word, const char *state) {
             // TODO: Unit test this (!!!)
             char following_state[STR_LEN_MAX];
             strcpy(following_state, state);
-            strcat(following_state, &following_states[i]);
+            size_t fs_len = strlen(following_state);
+            // append one of possible following states to current state
+            following_state[fs_len] = following_states[i];
+            following_state[fs_len+1] = '\0';
+//            strcat(following_state, &following_states[i]);
             assert(strlen(following_state) == strlen(state)+1);
 
             if(accept_rec(a, word, following_state)) {
@@ -88,7 +95,11 @@ bool accept_rec(const automaton *a, const char *word, const char *state) {
         // TODO: Unit test this (!!!)
         char following_state[STR_LEN_MAX];
         strcpy(following_state, state);
-        strcat(following_state, &following_states[i]);
+        size_t fs_len = strlen(following_state);
+        // append one of possible following states to current state
+        following_state[fs_len] = following_states[i];
+        following_state[fs_len+1] = '\0';
+//        strcat(following_state, &following_states[i]);
         assert(strlen(following_state) == strlen(state)+1);
 
         if(!accept_rec(a, word, following_state)) {
@@ -101,17 +112,17 @@ bool accept_rec(const automaton *a, const char *word, const char *state) {
 
 /// checks if given automaton accepts given word
 bool accept(const automaton * a, const char * word) {
-    return accept_rec(a, word, &(a->starting_state));
+    char starting_state[STR_LEN_MAX];
+    starting_state[0] = a->starting_state;
+    starting_state[1] = '\0';
+    return accept_rec(a, word, starting_state);
 }
 
 // TEST ENGINE AUTOMATA LOAD IMPL --------------------------------------------------------------------------------------
 
-/// loads automaton from string, delimited by endl char, allocates memory should be freed later
-const automaton * test_load_data(const char * test_input_data) {
-    // helpers for loading text instead of stdin
-    char * test_loader = (char *) test_input_data;
-    int test_loader_offset = 0;
 
+/// loads automaton from standard input, allocates memory should be freed later
+const automaton * load_data() {
     // iteration variables
     int i,j;
     // temporary data variables
@@ -122,6 +133,7 @@ const automaton * test_load_data(const char * test_input_data) {
     int letter;
     // buffers for loading arrays
     char * input_buff = NULL;
+    char * input_buff_freeable = NULL;
     int input_buff_offset = 0;
     size_t input_buff_len = 0;
 
@@ -139,16 +151,7 @@ const automaton * test_load_data(const char * test_input_data) {
     }
 
     // load structure parameters
-    sscanf(test_loader, "%d %n", &n, &test_loader_offset);
-    test_loader += test_loader_offset;
-    sscanf(test_loader, "%d %n", &a, &test_loader_offset);
-    test_loader += test_loader_offset;
-    sscanf(test_loader, "%d %n", &u, &test_loader_offset);
-    test_loader += test_loader_offset;
-    sscanf(test_loader, "%d %n", &q, &test_loader_offset);
-    test_loader += test_loader_offset;
-    sscanf(test_loader, "%d %n\n", &f, &test_loader_offset);
-    test_loader += test_loader_offset;
+    scanf("%d %d %d %d %d\n", &n, &a, &q, &u, &f);
     ans->alphabet_size = n;
     ans->states_size = q;
     ans->universal_states_size = u;
@@ -159,19 +162,16 @@ const automaton * test_load_data(const char * test_input_data) {
             // 0 has already been loaded
             case 1:
                 // loading starting state
-                sscanf(test_loader, "%d\n%n", &c_int, &test_loader_offset);
-                test_loader += test_loader_offset;
-
+                scanf("%d\n", &c_int);
                 assert(0 <= c_int && c_int < ans->states_size);
-                ans->starting_state = (char) c_int;
+                ans->starting_state = (char) (c_int + STR_STORAGE_VAL_OFFSET); // offsetting states in strings, see automaton struct documentation
                 break;
             case 2:
                 // loading acceptable states
                 for(j=0; j<f; j++) {
-                    sscanf(test_loader, "%d\n%n", &c_int, &test_loader_offset);
-                    test_loader += test_loader_offset;
-
+                    scanf("%d\n", &c_int);
                     assert(0 <= c_int && c_int < ans->states_size);
+                    c_int += STR_STORAGE_VAL_OFFSET; // offsetting states in strings, see automaton struct documentation
                     ans->acceptable_states[j] = (char) c_int;
                 }
                 ans->acceptable_states[f] = '\0'; // Setting end of string manually
@@ -179,10 +179,14 @@ const automaton * test_load_data(const char * test_input_data) {
             default:
                 // loading transition function
                 assert(input_buff == NULL);
+                assert(input_buff_freeable == NULL);
                 assert(input_buff_offset == 0);
                 assert(input_buff_len == 0);
-
-                input_buff = test_loader; // no need to free anything in this version
+                if(getline(&input_buff, &input_buff_len, stdin) == -1) {
+                    printf("Failed to perform getline() during automaton load: error in stdin or during memory allocation.\n");
+                    exit(1);
+                }
+                input_buff_freeable = input_buff; // input_buff is incremented, this is used to free memory later
 
                 // Scanning state and letter separately in order to keep track of the offset
                 sscanf(input_buff, "%d %n", &state, &input_buff_offset);
@@ -198,6 +202,7 @@ const automaton * test_load_data(const char * test_input_data) {
                 size_t transition_pos = state * (ans->alphabet_size) + letter;
                 j = 0;
                 while(sscanf(input_buff, "%d %n", &c_int, &input_buff_offset) == 1) {
+                    c_int += STR_STORAGE_VAL_OFFSET; // offsetting states in strings, see automaton struct documentation
                     ans->transitions[transition_pos][j] = (char)(c_int);
                     j++;
                     input_buff += input_buff_offset;
@@ -205,7 +210,9 @@ const automaton * test_load_data(const char * test_input_data) {
                 ans->transitions[transition_pos][j] = '\0';
 
                 // clean buffers
+                free(input_buff_freeable);
                 input_buff = NULL;
+                input_buff_freeable = NULL;
                 input_buff_offset = 0;
                 input_buff_len = 0;
                 break;
@@ -214,27 +221,43 @@ const automaton * test_load_data(const char * test_input_data) {
     return ans;
 }
 
-void test2() {
-    const char autom[] = "7 2 2 1 1\n0\n0\n0 a 0 1\n0 b 0\n1 a 1\n1 b 0\0";
-    const char words[4][100] = {
-            "a\0",
-            "\0",
-            "ab\0",
-            "aabbaba\0"
-    };
 
-    const automaton * a = test_load_data(autom);
+/**
+ * Runs single test, requires input from stdin:
+ * [automaton description]
+ * [number of words to process]
+ * [word 1|0]
+ * where 1 means the given word should be accepted, 0 that it should not.
+ */
+void run_test() {
+    const automaton * a = load_data();
+    int i, num_of_words;
 
-    // TODO: Not sure if this assertions are correct at all, re-check before further testing
-    assert(!accept(a, words[0]));
-//    assert(accept(a, words[1]));
-    assert(!accept(a, words[2]));
-    assert(accept(a, words[3]));
+    scanf("%d", &num_of_words);
+    int x = num_of_words; // for some reason num_of_words is nulled after each iteration, TODO: FIX
+    for(i = 0; i < x; i++) {
+        printf("Running test case #%d of %d:\n", i+1, num_of_words);
+        char word[STR_LEN_MAX];
+        bool expected_ans;
 
+        scanf("%s", word);
+        scanf("%d", &expected_ans);
+        assert(expected_ans==0 || expected_ans == 1);
+
+        bool ans = accept(a, word);
+        if(ans != expected_ans) {
+            printf("FAILED TEST: %s - ", word);
+            char boolstr[2][100] = {"false", "true"};
+            printf("got %s instated of %s. \n", boolstr[ans], boolstr[expected_ans]);
+        } else {
+            printf("PASSED: %s\n", word);
+        }
+    }
+    printf("Finished: %d %d.\n", i, x);
     free((void *) a);
 }
 
 int main() {
-    test2();
+    run_test();
     return 0;
 }
