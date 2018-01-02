@@ -248,7 +248,7 @@ void run_test() {
         if(ans != expected_ans) {
             printf("FAILED TEST: %s - ", word);
             char boolstr[2][100] = {"false", "true"};
-            printf("got %s instated of %s. \n", boolstr[ans], boolstr[expected_ans]);
+            printf("got %s instead of %s. \n", boolstr[ans], boolstr[expected_ans]);
         } else {
             printf("PASSED: %s\n", word);
         }
