@@ -35,7 +35,6 @@ bool is_acceptable(const automaton * a, char state) {
     assert(state >= 0 + STR_STORAGE_VAL_OFFSET);
     assert(state < a->states_size + STR_STORAGE_VAL_OFFSET);
 
-    state -= STR_STORAGE_VAL_OFFSET;
     size_t acceptable_states_length = strlen(a->acceptable_states);
     int i;
     for(i=0; i<acceptable_states_length; i++) {
@@ -55,6 +54,7 @@ const char * get_following_states(const automaton * a, char state, char word_let
     assert(word_letter <= 'z');
 
     state -= STR_STORAGE_VAL_OFFSET;
+    word_letter -= 'a';
     return a->transitions[state*a->alphabet_size + word_letter];
 }
 
@@ -63,7 +63,7 @@ bool accept_rec(const automaton *a, const char *word, const char *state) {
     size_t w_len = strlen(word);
     size_t depth = strlen(state)-1;
 
-    if(depth > w_len) {
+    if(depth >= w_len) {
         return is_acceptable(a, state[depth]);
     }
     const char * following_states = get_following_states(a, state[depth], word[depth]);
