@@ -113,7 +113,6 @@ int main() {
 
     // TODO: Create mq for incoming requests
 
-    // TODO: Move used standards and #DEFINEs to separate file with config
     /**
      * Request form: "[TYPE]-[PID]-[DATA]", where:
      * TYPE : {START_VALIDATION, FINISH_VALIDATION, HALT} (1. is sent from tester, 2. from run, 3. sent from tester)

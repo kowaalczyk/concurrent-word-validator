@@ -9,25 +9,27 @@
 
 
 /// checks if given state is universal in a given automata
-bool is_universal(const automaton * a, const char state) {
-    assert(state >= 0);
-    assert(state < a->states_size);
+bool is_universal(const automaton * a, char state) {
+    assert(state >= 0 + STR_STORAGE_VAL_OFFSET);
+    assert(state < a->states_size + STR_STORAGE_VAL_OFFSET);
 
+    state -= STR_STORAGE_VAL_OFFSET;
     return state < a->universal_states_size;
 }
 
 /// check if given state is existential in a given automata
-bool is_existential(const automaton * a, const char state) {
-    assert(state >= 0);
-    assert(state < a->states_size);
+bool is_existential(const automaton * a, char state) {
+    assert(state >= 0 + STR_STORAGE_VAL_OFFSET);
+    assert(state < a->states_size + STR_STORAGE_VAL_OFFSET);
 
+    state -= STR_STORAGE_VAL_OFFSET;
     return state >= a->universal_states_size;
 }
 
 /// iterates over acceptable states in automaton a, checking if the given state is acceptable, O(n)
-bool is_acceptable(const automaton * a, const char state) {
-    assert(state >= 0);
-    assert(state < a->states_size);
+bool is_acceptable(const automaton * a, char state) {
+    assert(state >= 0 + STR_STORAGE_VAL_OFFSET);
+    assert(state < a->states_size + STR_STORAGE_VAL_OFFSET);
 
     size_t acceptable_states_length = strlen(a->acceptable_states);
     int i;
@@ -41,53 +43,58 @@ bool is_acceptable(const automaton * a, const char state) {
 }
 
 /// returns string containing avaliable transitions (following states for current state and currently processed word) for given state in given automaton
-const char * get_following_states(const automaton * a, const char state, const char word_letter) {
-    assert(state >= 0);
-    assert(state < a->states_size);
+const char * get_following_states(const automaton * a, char state, char word_letter) {
+    assert(state >= 0 + STR_STORAGE_VAL_OFFSET);
+    assert(state < a->states_size + STR_STORAGE_VAL_OFFSET);
     assert(word_letter >= 'a');
     assert(word_letter <= 'z');
 
-    // TODO: Might need to normalize the alphabet to start from 0
+    state -= STR_STORAGE_VAL_OFFSET;
+    word_letter -= 'a';
     return a->transitions[state*a->alphabet_size + word_letter];
 }
 
 /// recursive helper for word validation, use 'accept' function
-bool accept_rec(const automaton *a, const char *word, const char *state) {
+bool accept_rec(const automaton *a, const char *word, const char *state_list) {
     size_t w_len = strlen(word);
-    size_t depth = strlen(state)-1;
+    size_t depth = strlen(state_list)-1;
 
-    if(depth > w_len) {
-        return is_acceptable(a, state[depth]);
+    if(depth >= w_len) {
+        return is_acceptable(a, state_list[depth]);
     }
-    const char * following_states = get_following_states(a, state[depth], word[depth]);
+    const char * following_states = get_following_states(a, state_list[depth], word[depth]);
     size_t following_states_length = strlen(following_states);
-    if(is_existential(a, state[depth])) {
+    if(is_existential(a, state_list[depth])) {
         // need to accept_rec any of following states
         int i;
         for(i=0; i<following_states_length; i++) {
-            // TODO: Unit test this (!!!)
-            char following_state[STR_LEN_MAX];
-            strcpy(following_state, state);
-            strcat(following_state, &following_states[i]);
-            assert(strlen(following_state) == strlen(state)+1);
+            char state_list_extended[STR_LEN_MAX]; // states list for given word is equal its length 
+            strcpy(state_list_extended, state_list);
+            size_t fs_len = strlen(state_list_extended);
+            // append one of possible following states to current state_list
+            state_list_extended[fs_len] = following_states[i];
+            state_list_extended[fs_len+1] = '\0';
+            assert(strlen(state_list_extended) == strlen(state_list)+1);
 
-            if(accept_rec(a, word, following_state)) {
+            if(accept_rec(a, word, state_list_extended)) {
                 return true;
             }
         }
         assert(i == following_states_length);
-        return false; // no state was accepted
+        return false; // no state_list was accepted
     }
-    assert(is_universal(a, state[depth]));
+    assert(is_universal(a, state_list[depth]));
     int i;
     for(i=0; i<following_states_length; i++) {
-        // TODO: Unit test this (!!!)
-        char following_state[STR_LEN_MAX];
-        strcpy(following_state, state);
-        strcat(following_state, &following_states[i]);
-        assert(strlen(following_state) == strlen(state)+1);
+        char state_list_extended[STR_LEN_MAX]; // states list for given word is equal its length
+        strcpy(state_list_extended, state_list);
+        size_t fs_len = strlen(state_list_extended);
+        // append one of possible following states to current state_list
+        state_list_extended[fs_len] = following_states[i];
+        state_list_extended[fs_len+1] = '\0';
+        assert(strlen(state_list_extended) == strlen(state_list)+1);
 
-        if(!accept_rec(a, word, following_state)) {
+        if(!accept_rec(a, word, state_list_extended)) {
             return false;
         }
     }
@@ -97,7 +104,10 @@ bool accept_rec(const automaton *a, const char *word, const char *state) {
 
 /// checks if given automaton accepts given word
 bool accept(const automaton * a, const char * word) {
-    return accept_rec(a, word, &(a->starting_state));
+    char state_list[STR_LEN_MAX]; // states list for given word is equal its length
+    state_list[0] = a->starting_state;
+    state_list[1] = '\0';
+    return accept_rec(a, word, state_list);
 }
 
 
@@ -106,8 +116,7 @@ int main() {
     // TODO: Create an answer queue so that validator is not blocked
 
 
-    // TODO: Implement automata word validation
-    // TODO: Consider validating words in parallel (don't make a fork bomb though)
+    // TODO: Fork-parallel version of accept_rec
 
     // TODO: Send answer, close queues and return
     return 0;

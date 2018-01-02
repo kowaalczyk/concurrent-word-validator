@@ -3,10 +3,11 @@
 //
 
 #include <stdio.h>
+#include "automaton.h"
 
 
 int main() {
-    char buffer[1000]; // TODO: Constantize
+    char buffer[STR_LEN_MAX];
 
     // TODO: Open queue for reading responses before sending actual request to any server
     // (this will not force the server to wait untill a message is received)
@@ -14,6 +15,7 @@ int main() {
     while(fgets(buffer, sizeof(buffer), stdin)) {
         printf("%s", buffer);
         // TODO: Send request to validator server
+        // TODO: Make sure to process empty strings correctly
     }
     // TODO: Wait for responses from validator server
 

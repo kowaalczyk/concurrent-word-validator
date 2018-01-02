@@ -59,50 +59,46 @@ const char * get_following_states(const automaton * a, char state, char word_let
 }
 
 /// recursive helper for word validation, use 'accept' function
-bool accept_rec(const automaton *a, const char *word, const char *state) {
+bool accept_rec(const automaton *a, const char *word, const char *state_list) {
     size_t w_len = strlen(word);
-    size_t depth = strlen(state)-1;
+    size_t depth = strlen(state_list)-1;
 
     if(depth >= w_len) {
-        return is_acceptable(a, state[depth]);
+        return is_acceptable(a, state_list[depth]);
     }
-    const char * following_states = get_following_states(a, state[depth], word[depth]);
+    const char * following_states = get_following_states(a, state_list[depth], word[depth]);
     size_t following_states_length = strlen(following_states);
-    if(is_existential(a, state[depth])) {
+    if(is_existential(a, state_list[depth])) {
         // need to accept_rec any of following states
         int i;
         for(i=0; i<following_states_length; i++) {
-            // TODO: Unit test this (!!!)
-            char following_state[STR_LEN_MAX];
-            strcpy(following_state, state);
-            size_t fs_len = strlen(following_state);
-            // append one of possible following states to current state
-            following_state[fs_len] = following_states[i];
-            following_state[fs_len+1] = '\0';
-//            strcat(following_state, &following_states[i]);
-            assert(strlen(following_state) == strlen(state)+1);
+            char state_list_extended[STR_LEN_MAX]; // states list for given word is equal its length
+            strcpy(state_list_extended, state_list);
+            size_t fs_len = strlen(state_list_extended);
+            // append one of possible following states to current state_list
+            state_list_extended[fs_len] = following_states[i];
+            state_list_extended[fs_len+1] = '\0';
+            assert(strlen(state_list_extended) == strlen(state_list)+1);
 
-            if(accept_rec(a, word, following_state)) {
+            if(accept_rec(a, word, state_list_extended)) {
                 return true;
             }
         }
         assert(i == following_states_length);
-        return false; // no state was accepted
+        return false; // no state_list was accepted
     }
-    assert(is_universal(a, state[depth]));
+    assert(is_universal(a, state_list[depth]));
     int i;
     for(i=0; i<following_states_length; i++) {
-        // TODO: Unit test this (!!!)
-        char following_state[STR_LEN_MAX];
-        strcpy(following_state, state);
-        size_t fs_len = strlen(following_state);
-        // append one of possible following states to current state
-        following_state[fs_len] = following_states[i];
-        following_state[fs_len+1] = '\0';
-//        strcat(following_state, &following_states[i]);
-        assert(strlen(following_state) == strlen(state)+1);
+        char state_list_extended[STR_LEN_MAX]; // states list for given word is equal its length
+        strcpy(state_list_extended, state_list);
+        size_t fs_len = strlen(state_list_extended);
+        // append one of possible following states to current state_list
+        state_list_extended[fs_len] = following_states[i];
+        state_list_extended[fs_len+1] = '\0';
+        assert(strlen(state_list_extended) == strlen(state_list)+1);
 
-        if(!accept_rec(a, word, following_state)) {
+        if(!accept_rec(a, word, state_list_extended)) {
             return false;
         }
     }
@@ -112,10 +108,10 @@ bool accept_rec(const automaton *a, const char *word, const char *state) {
 
 /// checks if given automaton accepts given word
 bool accept(const automaton * a, const char * word) {
-    char starting_state[STR_LEN_MAX];
-    starting_state[0] = a->starting_state;
-    starting_state[1] = '\0';
-    return accept_rec(a, word, starting_state);
+    char state_list[STR_LEN_MAX]; // states list for given word is equal its length
+    state_list[0] = a->starting_state;
+    state_list[1] = '\0';
+    return accept_rec(a, word, state_list);
 }
 
 // TEST ENGINE AUTOMATA LOAD IMPL --------------------------------------------------------------------------------------
