@@ -5,7 +5,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <mqueue.h>
+#include <stdbool.h>
 #include "automaton.h"
+#include "err.h"
 
 /// loads automaton from standard input, allocates memory should be freed later
 const automaton * load_data() {
@@ -108,26 +111,62 @@ const automaton * load_data() {
 }
 
 
+bool requested_halt(const char * buffer, ssize_t buffer_length) {
+    assert(buffer_length>0);
+    assert(3+sizeof(pid_t) < buffer_length);
+
+    return buffer[3+sizeof(pid_t)] == '!';
+}
+
+bool requested_validation_finish(const char * buffer, ssize_t buffer_length) {
+    // TODO
+
+    return false;
+}
+
+bool requested_validation_start(const char * buffer, ssize_t buffer_length) {
+    // TODO
+
+    return false;
+}
+
 int main() {
     const automaton * a = load_data();
 
-    // TODO: Create mq for incoming requests
-
-    /**
-     * Request form: "[TYPE]-[PID]-[DATA]", where:
-     * TYPE : {START_VALIDATION, FINISH_VALIDATION, HALT} (1. is sent from tester, 2. from run, 3. sent from tester)
-     * PID : (pid of a tester requesting the validation)
-     *
-     */
-
-    // TODO: HALT flag for knowing when to stop, child counter for knowing exactly when to stop
-    int temp_for_test = 0;
-    while(temp_for_test < 100 /* true */) {
-        // TODO: Handle START_VALIDATION by creating an answer mq, and spinning up a run process with provided word and stored description
-        // TODO: Handle FINISH_VALIDATION by pushing an answer into correct answer mq, and updating local logs
-        // TODO: Handle HALT by setting local flag which is checked before processing any new word
-        temp_for_test++;
+    char * q_name = VALIDATOR_INCOMING_REQUESTS_MQ_NAME;
+    mqd_t incoming_request_q = mq_open(q_name, O_RDONLY | O_CREAT);
+    if(incoming_request_q == -1) {
+        syserr("VALIDATOR: Failed to create requests queue");
     }
+
+    ssize_t ret;
+    char buffer[VALIDATOR_INCOMING_REQUESTS_MQ_BUFFSIZE];
+    bool halt_flag_raised = false;
+    size_t awaiting_runs = 0;
+    while(!halt_flag_raised || awaiting_runs) {
+        // wait for incoming message (from tester or run)
+        ret = mq_receive(incoming_request_q, buffer, VALIDATOR_INCOMING_REQUESTS_MQ_BUFFSIZE, NULL);
+        if(ret < 0) {
+            syserr("VALIDATOR: Failed to receive request");
+        }
+        // process incoming message
+        if(requested_halt(buffer, ret)) {
+            halt_flag_raised = true;
+
+        } else if(requested_validation_finish(buffer, ret)) {
+            // TODO: Handle FINISH_VALIDATION by pushing an answer into correct answer mq, and updating local logs
+            awaiting_runs++;
+
+        } else if(requested_validation_start(buffer, ret)) {
+            // TODO: Handle START_VALIDATION by creating an answer mq, and spinning up a run process with provided word and stored description
+            awaiting_runs--;
+        }
+    }
+    // clean queue
+    if (mq_close(incoming_request_q)) syserr("VALIDATOR: Failed to close queue");
+    if (mq_unlink(q_name)) syserr("VALIDATOR: Failed to unlink queue");
+
+    // clean memory
     free((void *) a);
     return 0;
 }

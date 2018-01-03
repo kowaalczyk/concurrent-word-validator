@@ -7,11 +7,25 @@
 
 #include <stdio.h>
 
+
+// automaton struct parameters
 #define STR_LEN_MAX 1000
 #define ALPHABET_MAX_SIZE ('z'-'a')
 #define STATES_MAX_SIZE 100
 #define TRANSITIONS_MAX_SIZE (STATES_MAX_SIZE * ALPHABET_MAX_SIZE)
 #define STR_STORAGE_VAL_OFFSET 1
+
+
+// message queue parameters TODO: Move to separate header, TODO: for PID use http://www.cplusplus.com/reference/cstdlib/itoa/
+/**
+ * Request form: "[TYPE]-[PID]-[DATA]", where:
+ * TYPE : {1, 2, 3} (1. is sent from tester, 2. from run, 3. sent from tester)
+ * PID : (pid of a tester requesting the validation, in binary format)
+ *
+ */
+#define VALIDATOR_INCOMING_REQUESTS_MQ_NAME "automata_validator_server_validation_request_q"
+#define VALIDATOR_INCOMING_REQUESTS_MQ_BUFFSIZE (STR_LEN_MAX + sizeof(pid_t) + 1 + 3)
+
 
 /**
  * Structure representing a single automaton.
