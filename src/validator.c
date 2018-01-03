@@ -113,21 +113,20 @@ const automaton * load_data() {
 
 bool requested_halt(const char * buffer, ssize_t buffer_length) {
     assert(buffer_length>0);
-    assert(3+sizeof(pid_t) < buffer_length);
 
-    return buffer[3+sizeof(pid_t)] == '!';
+    return buffer[0] == VALIDATION_HALT_FLAG;
 }
 
 bool requested_validation_finish(const char * buffer, ssize_t buffer_length) {
-    // TODO
+    assert(buffer_length>0);
 
-    return false;
+    return buffer[0] == VALIDATION_FINISH_FLAG;
 }
 
 bool requested_validation_start(const char * buffer, ssize_t buffer_length) {
-    // TODO
+    assert(buffer_length>0);
 
-    return false;
+    return buffer[0] == VALIDATION_START_FLAG;
 }
 
 int main() {

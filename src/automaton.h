@@ -23,6 +23,9 @@
  * PID : (pid of a tester requesting the validation, in binary format)
  *
  */
+#define VALIDATION_START_FLAG '1'
+#define VALIDATION_FINISH_FLAG '2'
+#define VALIDATION_HALT_FLAG '3'
 #define VALIDATOR_INCOMING_REQUESTS_MQ_NAME "automata_validator_server_validation_request_q"
 #define VALIDATOR_INCOMING_REQUESTS_MQ_BUFFSIZE (STR_LEN_MAX + sizeof(pid_t) + 1 + 3)
 
