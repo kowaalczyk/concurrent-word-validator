@@ -68,7 +68,7 @@ bool accept_rec(const automaton *a, const char *word, const char *state_list) {
         // need to accept_rec any of following states
         int i;
         for(i=0; i<following_states_length; i++) {
-            char state_list_extended[STR_LEN_MAX]; // states list for given word is equal its length 
+            char state_list_extended[STR_LEN_MAX]; // states list for given word is equal its length
             strcpy(state_list_extended, state_list);
             size_t fs_len = strlen(state_list_extended);
             // append one of possible following states to current state_list
@@ -76,6 +76,7 @@ bool accept_rec(const automaton *a, const char *word, const char *state_list) {
             state_list_extended[fs_len+1] = '\0';
             assert(strlen(state_list_extended) == strlen(state_list)+1);
 
+            // TODO: fork()
             if(accept_rec(a, word, state_list_extended)) {
                 return true;
             }
@@ -94,6 +95,7 @@ bool accept_rec(const automaton *a, const char *word, const char *state_list) {
         state_list_extended[fs_len+1] = '\0';
         assert(strlen(state_list_extended) == strlen(state_list)+1);
 
+        // TODO: fork()
         if(!accept_rec(a, word, state_list_extended)) {
             return false;
         }
@@ -116,7 +118,6 @@ int main() {
     // TODO: Create an answer queue so that validator is not blocked
 
 
-    // TODO: Fork-parallel version of accept_rec
 
     // TODO: Send answer, close queues and return
     return 0;
