@@ -15,6 +15,7 @@ endmacro()
 
 add_library(err STATIC src/err.h src/err.c)
 add_library(automaton STATIC src/automaton.h src/automaton.c)
+add_library(request_queue STATIC src/request_queue.h src/request_queue.c)
 
 # release executables
 add_executable(validator src/validator.c)
