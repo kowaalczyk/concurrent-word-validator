@@ -113,8 +113,12 @@ bool accept(const automaton * a, const char * word) {
 }
 
 
-int main() {
-    // TODO: Get answer queue name from program args
+int main(int argc, char * argv[]) {
+    assert(argc == 3);
+    char * request_mq_name = argv[1];
+    char * validation_start_request_content = argv[2];
+
+    // TODO: Reveive motherfucking automaton via program args (first), then possibly move to MQ
     // TODO: Create an answer queue so that validator is not blocked
 
 

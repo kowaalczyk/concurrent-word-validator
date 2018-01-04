@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include "automaton.h"
 #include "err.h"
-#include "request_queue.h"
+#include "validator_queues.h"
 
 /// loads automaton from standard input, allocates memory should be freed later
 const automaton * load_data() {
@@ -115,19 +115,19 @@ const automaton * load_data() {
 int main() {
     const automaton * a = load_data();
 
-    char * q_name = VALIDATOR_INCOMING_REQUESTS_MQ_NAME;
+    char * q_name = PW_VQ_REQUEST_NAME_PREFIX;
     mqd_t incoming_request_q = mq_open(q_name, O_RDONLY | O_CREAT);
     if(incoming_request_q == -1) {
         syserr("VALIDATOR: Failed to create requests queue");
     }
 
     ssize_t ret;
-    char buffer[VALIDATOR_INCOMING_REQUESTS_MQ_BUFFSIZE];
+    char buffer[PW_VQ_REQUEST_BUFFSIZE];
     bool halt_flag_raised = false;
     size_t awaiting_runs = 0;
     while(!halt_flag_raised || awaiting_runs) {
         // wait for incoming message (from tester or run)
-        ret = mq_receive(incoming_request_q, buffer, VALIDATOR_INCOMING_REQUESTS_MQ_BUFFSIZE, NULL);
+        ret = mq_receive(incoming_request_q, buffer, PW_VQ_REQUEST_BUFFSIZE, NULL);
         if(ret < 0) {
             syserr("VALIDATOR: Failed to receive request");
         }

@@ -6,9 +6,8 @@
 #include <zconf.h>
 #include <mqueue.h>
 #include "automaton.h"
-#include "response_queue.h"
-#include "request_queue.h"
 #include "err.h"
+#include "validator_queues.h"
 
 
 int main() {
@@ -18,22 +17,27 @@ int main() {
         syserr("TESTER: Failed to create response queue");
     }
 
-    char * request_q_name = VALIDATOR_INCOMING_REQUESTS_MQ_NAME;
+    char * request_q_name = PW_VQ_REQUEST_NAME_PREFIX;
     mqd_t request_q = mq_open(request_q_name, O_WRONLY);
     if(request_q == -1) {
         syserr("TESTER: Failed to create requests queue");
     }
 
     size_t awaiting_responses = 0;
-    char buffer[STR_LEN_MAX];
-    while(fgets(buffer, sizeof(buffer), stdin)) {
-        printf("%s", buffer);
-        mq_send(request_q, buffer, strlen(buffer), 1);
-        // TODO: Before sending requests, check if any responses are present (server won't have to wait)
+    char input_buffer[STR_LEN_MAX];
+    char send_buffer[PW_VQ_REQUEST_BUFFSIZE];
+    while(fgets(input_buffer, sizeof(input_buffer), stdin)) {
+        printf("%s", input_buffer);
+
+        mq_send(request_q, input_buffer, strlen(input_buffer), 1);
         // TODO: Send request to validator server
         // TODO: Make sure to process empty strings correctly
     }
-    // TODO: Wait for responses from validator server
+    while(awaiting_responses > 0) {
+        // TODO: Wait for responses from validator server
+        // TODO: This may stall response queue when a lot of words are validated simultaneously
+        awaiting_responses--;
+    }
 
     // clean queues, requests queue is closed by server (validator)
     if (mq_close(response_q)) syserr("TESTER: Failed to close queue");
