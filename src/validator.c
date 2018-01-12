@@ -7,6 +7,8 @@
 #include <assert.h>
 #include <mqueue.h>
 #include <stdbool.h>
+#include <zconf.h>
+#include <wait.h>
 #include "automaton.h"
 #include "err.h"
 #include "validator_queues.h"
@@ -111,6 +113,20 @@ const automaton * load_data() {
     return ans;
 }
 
+void async_run_init(const char *word) {
+    // TODO: Create MQ for sending automaton and word to run
+    // TODO: Create run
+    // TODO: Send automaton to run
+    // TODO: Send word to run
+    // TODO: Close MQ to run
+}
+
+void async_forward_response(const char * buffer, ssize_t buffer_size) {
+    // TODO: Parse buffer if necessary
+    // TODO: child process get response MQ mqd_t,
+    // TODO: send response,
+    // TODO: update local logs
+}
 
 int main() {
     const automaton * a = load_data();
@@ -121,27 +137,49 @@ int main() {
         syserr("VALIDATOR: Failed to create requests queue");
     }
 
-    ssize_t ret;
+    ssize_t request_ret;
     char buffer[PW_VQ_REQUEST_BUFFSIZE];
+    char word[STR_LEN_MAX];
     bool halt_flag_raised = false;
     size_t awaiting_runs = 0;
+    size_t awaiting_forks = 0;
     while(!halt_flag_raised || awaiting_runs) {
         // wait for incoming message (from tester or run)
-        ret = mq_receive(incoming_request_q, buffer, PW_VQ_REQUEST_BUFFSIZE, NULL);
-        if(ret < 0) {
+        request_ret = mq_receive(incoming_request_q, buffer, PW_VQ_REQUEST_BUFFSIZE, NULL);
+        if(request_ret < 0) {
             syserr("VALIDATOR: Failed to receive request");
         }
         // process incoming message
-        if(requested_halt(buffer, ret)) {
+        if(requested_halt(buffer, request_ret)) {
             halt_flag_raised = true;
 
-        } else if(requested_validation_finish(buffer, ret)) {
-            // TODO: Handle FINISH_VALIDATION by pushing an answer into correct answer mq, and updating local logs
-            awaiting_runs++;
+        } else if(requested_validation_finish(buffer, request_ret)) {
+            switch (fork()) {
+                case -1:
+                    syserr("VALIDATOR: Error in fork");
+                case 0:
+                    async_forward_response(buffer, request_ret);
+                    break;
+                default:
+                    awaiting_forks++;
+                    awaiting_runs--;
+            }
 
-        } else if(requested_validation_start(buffer, ret)) {
-            // TODO: Handle START_VALIDATION by creating an answer mq, and spinning up a run process with provided word and stored description
-            awaiting_runs--;
+        } else if(requested_validation_start(buffer, request_ret)) {
+            switch (fork()) {
+                case -1:
+                    syserr("VALIDATOR: Error in fork");
+                case 0:
+                    // child creates run, sends automaton via mq, closes it and exits
+                    get_request_word(buffer, request_ret, word);
+                    async_run_init(word);
+                    exit(0);
+                default:
+                    // parent will wait for all forks after all requests will be processed
+                    // TODO: Create response MQ and open it for writing (this is non-blocking, tester already has an open queue)
+                    awaiting_forks++;
+                    awaiting_runs++;
+            }
         }
     }
     // clean queue
@@ -150,5 +188,14 @@ int main() {
 
     // clean memory
     free((void *) a);
+
+    while(awaiting_forks > 0) {
+        // TODO: Handle errors from forks
+        wait(NULL);
+        awaiting_forks--;
+    }
+
+    // TODO: Close all response MQs (if necessary)
+
     return 0;
 }

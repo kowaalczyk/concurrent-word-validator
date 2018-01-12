@@ -30,7 +30,6 @@ int main() {
         printf("%s", input_buffer);
 
         mq_send(request_q, input_buffer, strlen(input_buffer), 1);
-        // TODO: Send request to validator server
         // TODO: Make sure to process empty strings correctly
     }
     while(awaiting_responses > 0) {

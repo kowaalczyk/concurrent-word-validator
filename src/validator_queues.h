@@ -72,7 +72,11 @@
 
 // request helpers -----------------------------------------------------------------------------------------------------
 
-
+/// extracts word from buffer and returns it
+void get_request_word(const char *buffer, ssize_t buffer_length, char * word) {
+    // TODO: Extract word from buffer and save it into word c-string
+    // TODO: Refactor all functions working on strings to keep same format (ptr to target string as last argument)
+}
 
 // request checkers ----------------------------------------------------------------------------------------------------
 
@@ -142,7 +146,7 @@ void tester_request_validation_start() {
 
 /// extracts pid from a given requests and returns response queue name associated with it
 char * get_response_queue_name(const char * request, ssize_t request_length) {
-    // TODO: Refactor
+    // TODO: change to mqd_t - cannot send to mq if only a name is known
     char * ans = malloc(PID_FORMAT_LENGTH*sizeof(char));
     memcpy(ans, request, PID_FORMAT_LENGTH);
     return ans;
@@ -161,6 +165,7 @@ char * create_response_queue_name(pid_t pid) {
 /// creates a response based on provided validation finish request
 char * validator_create_response(const char * validation_finish_request, ssize_t request_length) {
     // TODO
+    return NULL;
 }
 
 // no response checkers / handlers are necessary

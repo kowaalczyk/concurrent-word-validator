@@ -118,10 +118,13 @@ int main(int argc, char * argv[]) {
     char * request_mq_name = argv[1];
     char * validation_start_request_content = argv[2];
 
-    // TODO: Reveive motherfucking automaton via program args (first), then possibly move to MQ
-    // TODO: Create an answer queue so that validator is not blocked
+    // TODO: Create an answer queue so that validator is not blocked (can it be blocked here anyway?)
 
+    // TODO: Receive automaton via MQ
+    // TODO: Receive word via MQ
+    // TODO: Close that MQ immediately
 
+    // TODO: Process word
 
     // TODO: Send answer, close queues and return
     return 0;
