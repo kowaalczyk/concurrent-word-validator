@@ -2,46 +2,70 @@
 // Created by kowal on 27.12.17.
 //
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <zconf.h>
 #include <mqueue.h>
-#include "automaton.h"
+#include <wait.h>
+#include <memory.h>
 #include "err.h"
-#include "validator_queues.h"
+#include "validator_mq.h"
 
+
+size_t await_response = 0;
+size_t await_forks = 0;
+
+/**
+ * Asynchronous.
+ * Sends word as a request to validator
+ * @param validator_mq
+ * @param word
+ */
+void async_send_request_to_validator(mqd_t validator_mq, const char * word) {
+    switch (fork()) {
+        case -1:
+            syserr("TESTER: Error in fork");
+        case 0:
+            validator_mq_send_validation_start_request(validator_mq, word);
+            exit(0);
+        default:
+            await_response++;
+            await_forks++;
+    }
+}
 
 int main() {
-    char * response_q_name = create_response_queue_name(getpid());
-    mqd_t response_q = mq_open(response_q_name, O_RDONLY | O_CREAT);
-    if(response_q == -1) {
-        syserr("TESTER: Failed to create response queue");
-    }
+    mqd_t tester_mq = tester_mq_start(true);
+//    char * response_mq_name = create_response_queue_name(getpid());
+//    mqd_t tester_mq = mq_open(response_mq_name, O_RDONLY | O_CREAT);
+//    if(tester_mq == -1) {
+//        syserr("TESTER: Failed to create response queue");
+//    }
 
-    char * request_q_name = PW_VQ_REQUEST_NAME_PREFIX;
-    mqd_t request_q = mq_open(request_q_name, O_WRONLY);
-    if(request_q == -1) {
-        syserr("TESTER: Failed to create requests queue");
-    }
+    mqd_t validator_mq = validator_mq_start(false);
 
-    size_t awaiting_responses = 0;
-    char input_buffer[STR_LEN_MAX];
-    char send_buffer[PW_VQ_REQUEST_BUFFSIZE];
+    char input_buffer[WORD_LEN_MAX];
+    char send_buffer[VALIDATOR_MQ_BUFFSIZE];
     while(fgets(input_buffer, sizeof(input_buffer), stdin)) {
-        printf("%s", input_buffer);
-
-        mq_send(request_q, input_buffer, strlen(input_buffer), 1);
         // TODO: Make sure to process empty strings correctly
+        async_send_request_to_validator(validator_mq, input_buffer);
     }
-    while(awaiting_responses > 0) {
+    validator_mq_finish(validator_mq);
+
+    while(await_response) {
         // TODO: Wait for responses from validator server
-        // TODO: This may stall response queue when a lot of words are validated simultaneously
-        awaiting_responses--;
+        await_response--;
     }
 
     // clean queues, requests queue is closed by server (validator)
-    if (mq_close(response_q)) syserr("TESTER: Failed to close queue");
-    if (mq_unlink(response_q_name)) syserr("TESTER: Failed to unlink queue");
-    // clean memory
-    free(response_q_name);
+    if (mq_close(response_mq)) syserr("TESTER: Failed to close queue");
+    if (mq_unlink(response_mq_name)) syserr("TESTER: Failed to unlink queue");
+
+    tester_mq_finish(tester_mq);
+    while(await_forks) {
+        // TODO: Handle errors from forks
+        wait(NULL);
+        await_forks--;
+    }
     return 0;
 }
