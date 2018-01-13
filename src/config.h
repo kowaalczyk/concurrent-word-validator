@@ -11,4 +11,12 @@
 #define WORD_LEN_MAX 1000
 #define PID_STR_LEN_MAX (sizeof(pid_t))
 
+const char SYMBOL_VALIDATION_PASSED = 'A';
+const char SYMBOL_VALIDATION_FAILED = 'N';
+
+// TODO: Delete/reformat:
+/**
+ * Queue naming convention: "/PW_VALIDATOR_[REQUEST|RESPONSE]_[pid of opener]
+ */
+
 #endif //PW_VALIDATOR_CONFIG_H
