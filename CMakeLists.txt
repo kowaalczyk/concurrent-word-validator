@@ -14,8 +14,12 @@ macro (add_executable _name)
 endmacro()
 
 add_library(err STATIC src/err.h src/err.c)
+
+add_library(config STATIC src/config.c src/config.h)
 add_library(automaton STATIC src/automaton.h src/automaton.c)
-add_library(validator_queues STATIC src/validator_queues.c src/validator_queues.h)
+add_library(validator_queues STATIC src/validator_queues.c src/validator_queues.h) #TODO: Remove
+add_library(validator_mq STATIC src/validator_mq.c src/validator_mq.h)
+add_library(tester_mq STATIC src/tester_mq.c src/tester_mq.h)
 
 # release executables
 add_executable(validator src/validator.c)
