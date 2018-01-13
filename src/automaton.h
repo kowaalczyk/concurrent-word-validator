@@ -7,10 +7,9 @@
 
 #include <stdio.h>
 
-#define STR_LEN_MAX 1000
-#define ALPHABET_MAX_SIZE ('z'-'a')
-#define STATES_MAX_SIZE 100
-#define TRANSITIONS_MAX_SIZE (STATES_MAX_SIZE * ALPHABET_MAX_SIZE)
+#define ALPHABET_SIZE ('z'-'a')
+#define STATES_SIZE 100
+#define TRANSITIONS_SIZE (STATES_SIZE * ALPHABET_SIZE)
 #define STR_STORAGE_VAL_OFFSET 1
 
 /**
@@ -25,8 +24,21 @@ typedef struct automaton {
     size_t states_size; /// size of all states in automaton
     size_t universal_states_size; /// 0..universal_states_size-1 := universal states, universal_states_size..states_size-1 := existential states
     char starting_state; /// starting state for validation
-    char acceptable_states[STATES_MAX_SIZE]; /// '\0'-terminated, each char represents one state (offsetted)
-    char transitions[TRANSITIONS_MAX_SIZE][STATES_MAX_SIZE]; /// transitions[state*(alphabet_size) + letter_normalized] := C-string containing all possible following states (offsetted)
+    char acceptable_states[STATES_SIZE]; /// '\0'-terminated, each char represents one state (offsetted)
+    char transitions[TRANSITIONS_SIZE][STATES_SIZE]; /// transitions[state*(alphabet_size) + letter_normalized] := C-string containing all possible following states (offsetted)
 } automaton;
+
+/**
+ * Creates automaton based on data from stdin.
+ * Automaton cannot be modified later, and can be freed only via delete_automaton.
+ * @return pointer to created automaton
+ */
+extern const automaton * load_automaton(); // TODO: Check error handling
+
+/**
+ * Frees memory allocated for automaton, disregards const specifier.
+ * @param to_delete
+ */
+extern void delete_automaton(const automaton * to_delete); // TODO: Make sure this will no
 
 #endif //PW_VALIDATOR_AUTO_H
