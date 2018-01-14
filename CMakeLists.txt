@@ -28,3 +28,7 @@ add_executable(run src/run.c)
 # test executables
 add_executable(struct_load_malloc_test test/struct_memory_alloc_test.c)
 add_executable(seq_word_validation_test test/seq_word_validation_test.c)
+
+# pipe large struct test: compile child first, run parent and diff their output files (shold be the same)
+add_executable(pipe_cpy_test_child test/pipe_cpy_test_child.c)
+add_executable(pipe_cpy_test test/pipe_cpy_test.c)

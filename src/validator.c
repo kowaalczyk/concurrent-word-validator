@@ -91,6 +91,8 @@ int main() {
             syserr("VALIDATOR: Received invalid request");
         }
     }
+    // TODO: Await for runs after halt flag
+
     // clean up
     validator_mq_finish(request_mq);
     free((void *) a);

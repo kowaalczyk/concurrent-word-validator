@@ -39,6 +39,6 @@ extern const automaton * load_automaton(); // TODO: Check error handling
  * Frees memory allocated for automaton, disregards const specifier.
  * @param to_delete
  */
-extern void delete_automaton(const automaton * to_delete); // TODO: Make sure this will no
+extern void delete_automaton(const automaton * to_delete); // TODO: Make sure this will compile
 
 #endif //PW_VALIDATOR_AUTO_H
