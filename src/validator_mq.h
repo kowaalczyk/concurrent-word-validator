@@ -9,8 +9,8 @@
 #include <stdbool.h>
 #include "config.h"
 
-
-#define VALIDATOR_MQ_BUFFSIZE (WORD_LEN_MAX + PID_STR_LEN_MAX + 4)
+// [flag]-[pid]-[word]\0
+#define VALIDATOR_MQ_BUFFSIZE (WORD_LEN_MAX + PID_STR_LEN + 4)
 
 const char VALIDATOR_MQ_FLAG_HALT = '!';
 const char VALIDATOR_MQ_FLAG_START = '1';

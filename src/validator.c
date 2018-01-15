@@ -73,10 +73,11 @@ int main() {
     char request_buff[VALIDATOR_MQ_BUFFSIZE];
     ssize_t request_ret;
     mqd_t request_mq = validator_mq_start(true); // 1=> server, 0=> client
+
     // handle incoming requests
     while(!halt_flag_raised || await_runs) {
-        // wait for incoming request
         request_ret = validator_mq_receive(request_mq, request_buff, VALIDATOR_MQ_BUFFSIZE);
+
         // process request
         if(validator_mq_requested_halt(request_buff, request_ret)) {
             halt_flag_raised = true;
@@ -91,7 +92,7 @@ int main() {
             syserr("VALIDATOR: Received invalid request");
         }
     }
-    // TODO: Await for runs after halt flag
+    // TODO: Await for runs after halt flag and ignore other requests
 
     // clean up
     validator_mq_finish(request_mq);

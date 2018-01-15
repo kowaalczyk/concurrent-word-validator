@@ -10,6 +10,7 @@
 #include <memory.h>
 #include "err.h"
 #include "validator_mq.h"
+#include "tester_mq.h"
 
 
 size_t await_response = 0;
@@ -35,32 +36,42 @@ void async_send_request_to_validator(mqd_t validator_mq, const char * word) {
 }
 
 int main() {
-    mqd_t tester_mq = tester_mq_start(true);
-//    char * response_mq_name = create_response_queue_name(getpid());
-//    mqd_t tester_mq = mq_open(response_mq_name, O_RDONLY | O_CREAT);
-//    if(tester_mq == -1) {
-//        syserr("TESTER: Failed to create response queue");
-//    }
+    // setup queues
+    char tester_mq_name[TESTER_MQ_NAME_LEN];
+    tester_mq_get_name_from_pid(getpid(), tester_mq_name);
+    mqd_t tester_mq = tester_mq_start(true, tester_mq_name);
+    mqd_t validator_mq = validator_mq_start(false); // assuming there is only one validator,
 
-    mqd_t validator_mq = validator_mq_start(false);
-
+    // setup buffer
     char input_buffer[WORD_LEN_MAX];
-    char send_buffer[VALIDATOR_MQ_BUFFSIZE];
+    char request_buffer[VALIDATOR_MQ_BUFFSIZE];
+
+    // load words and send them asynchronously
     while(fgets(input_buffer, sizeof(input_buffer), stdin)) {
         // TODO: Make sure to process empty strings correctly
-        async_send_request_to_validator(validator_mq, input_buffer);
+        memcpy(request_buffer, input_buffer, strlen(input_buffer));
+        async_send_request_to_validator(validator_mq, request_buffer);
     }
     validator_mq_finish(validator_mq);
 
+    // process validator responses synchronously
+    ssize_t response_ret;
+    char response_buffer[TESTER_MQ_BUFFSIZE];
     while(await_response) {
-        // TODO: Wait for responses from validator server
+        response_ret = tester_mq_receive(tester_mq, response_buffer, TESTER_MQ_BUFFSIZE);
+        if(tester_mq_received_halt(response_buffer, response_ret)) {
+            // TODO: Kill all sending forks
+
+        } else if(tester_mq_received_validation_result(response_buffer, response_ret)) {
+            printf("%s", response_buffer); // \n is already present in a response
+
+        } else {
+            syserr("TESTER: Received invalid response from validator");
+        }
         await_response--;
     }
 
-    // clean queues, requests queue is closed by server (validator)
-    if (mq_close(response_mq)) syserr("TESTER: Failed to close queue");
-    if (mq_unlink(response_mq_name)) syserr("TESTER: Failed to unlink queue");
-
+    // clean up
     tester_mq_finish(tester_mq);
     while(await_forks) {
         // TODO: Handle errors from forks
