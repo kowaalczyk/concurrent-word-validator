@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <zconf.h>
 #include <wait.h>
+#include <assert.h>
 #include "automaton.h"
 #include "err.h"
 #include "validator_mq.h"
@@ -67,6 +68,22 @@ void async_forward_response(const char * buffer, ssize_t buffer_size) {
     }
 }
 
+void async_signal_halt(const char * buffer, ssize_t buffer_size) {
+    switch (fork()) {
+        case -1:
+            syserr("VALIDATOR: Error in fork");
+        case 0:
+            // TODO: Parse buffer if necessary
+            // TODO: child process get response MQ mqd_t,
+            // TODO: send response to the correct tester
+            // TODO: update local logs
+            break;
+        default:
+            await_forks++;
+            await_runs--;
+    }
+}
+
 int main() {
     // setup
     const automaton * a = load_automaton();
@@ -75,7 +92,7 @@ int main() {
     mqd_t request_mq = validator_mq_start(true); // 1=> server, 0=> client
 
     // handle incoming requests
-    while(!halt_flag_raised || await_runs) {
+    while(!halt_flag_raised) {
         request_ret = validator_mq_receive(request_mq, request_buff, VALIDATOR_MQ_BUFFSIZE);
 
         // process request
@@ -92,7 +109,19 @@ int main() {
             syserr("VALIDATOR: Received invalid request");
         }
     }
-    // TODO: Await for runs after halt flag and ignore other requests
+    // after halt flag is raised, wait for runs to complete and halt other testers if necessary
+    while(await_runs) {
+        request_ret = validator_mq_receive(request_mq, request_buff, VALIDATOR_MQ_BUFFSIZE);
+
+        // process request
+        if(validator_mq_requested_validation_finish(request_buff, request_ret)) {
+            async_forward_response(request_buff, request_ret);
+
+        } else {
+            assert(validator_mq_requested_halt(request_buff, request_ret) || validator_mq_requested_validation_start(request_buff, request_ret));
+            async_signal_halt(request_buff, request_ret);
+        }
+    }
 
     // clean up
     validator_mq_finish(request_mq);
