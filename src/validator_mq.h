@@ -9,12 +9,13 @@
 #include <stdbool.h>
 #include "config.h"
 
-// [flag]-[pid]-[word]\0
+// [flag]-[pidstr]-[word]\0
 #define VALIDATOR_MQ_BUFFSIZE (WORD_LEN_MAX + PID_STR_LEN + 4)
 
-const char VALIDATOR_MQ_FLAG_HALT = '!';
-const char VALIDATOR_MQ_FLAG_START = '1';
-const char VALIDATOR_MQ_FLAG_FINISH = '2';
+const char VALIDATOR_MQ_FLAG_HALT = HALT_FLAG;
+const char VALIDATOR_MQ_FLAG_START = 'S';
+const char VALIDATOR_MQ_FLAG_FINISH_PASSED = VALIDATION_PASSED_FLAG;
+const char VALIDATOR_MQ_FLAG_FINISH_FAILED = VALIDATION_FAILED_FLAG;
 
 
 /**
@@ -66,6 +67,27 @@ extern bool validator_mq_requested_validation_start(const char * buffer, ssize_t
  * @return
  */
 extern bool validator_mq_requested_validation_finish(const char * buffer, ssize_t buffer_size);
+
+/**
+ * Extracts pidstr from buffer to target
+ * @param buffer
+ * @param target
+ */
+extern void validator_mq_extract_pidstr(const char * buffer, char * target);
+
+/**
+ * Extracts word from buffer to target
+ * @param buffer
+ * @param target
+ */
+extern void validator_mq_extract_word(const char * buffer, char * target);
+
+/**
+ * Extracts flag from buffer to target
+ * @param buffer
+ * @param target
+ */
+extern void validator_mq_extract_flag(const char * buffer, char * target);
 
 /**
  * Closes provided queue and cleans its data,

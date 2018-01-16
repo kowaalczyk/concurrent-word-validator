@@ -12,6 +12,7 @@
 #include "automaton.h"
 #include "err.h"
 #include "validator_mq.h"
+#include "tester_mq.h"
 
 
 bool halt_flag_raised = false;
@@ -46,6 +47,8 @@ void async_start_validation(const char *buffer, ssize_t buffer_size) {
     }
 }
 
+// TODO: Make sure multiple opening and closing tester_mqs in forks is working, if not implement vector of mqd_t-s w/ names
+
 /**
  * Asynchronous.
  * Forwards validation finished request to proper tester as a response.
@@ -53,15 +56,27 @@ void async_start_validation(const char *buffer, ssize_t buffer_size) {
  * @param buffer_size - actual length of data in buffer
  */
 void async_forward_response(const char * buffer, ssize_t buffer_size) {
+    char pid_msg_part[PID_STR_LEN];
+    char word_msg_part[WORD_LEN_MAX];
+    char flag_msg_part;
+    char tester_mq_name[TESTER_MQ_NAME_LEN];
+    mqd_t tester_mq;
+
     switch (fork()) {
         case -1:
             syserr("VALIDATOR: Error in fork");
         case 0:
-            // TODO: Parse buffer if necessary
-            // TODO: child process get response MQ mqd_t,
-            // TODO: send response,
+            validator_mq_extract_pidstr(buffer, pid_msg_part);
+            validator_mq_extract_word(buffer, word_msg_part);
+            validator_mq_extract_flag(buffer, &flag_msg_part);
+
+            tester_mq_get_name_from_pidstr(pid_msg_part, tester_mq_name);
+            tester_mq = tester_mq_start(false, tester_mq_name);
+            tester_mq_send_validation_result(tester_mq, word_msg_part, &flag_msg_part);
+            tester_mq_finish(tester_mq);
+
             // TODO: update local logs
-            break;
+            exit(0);
         default:
             await_forks++;
             await_runs--;
@@ -69,15 +84,23 @@ void async_forward_response(const char * buffer, ssize_t buffer_size) {
 }
 
 void async_signal_halt(const char * buffer, ssize_t buffer_size) {
+    char pid_msg_part[PID_STR_LEN];
+    char tester_mq_name[TESTER_MQ_NAME_LEN];
+    mqd_t tester_mq;
+
     switch (fork()) {
         case -1:
             syserr("VALIDATOR: Error in fork");
         case 0:
-            // TODO: Parse buffer if necessary
-            // TODO: child process get response MQ mqd_t,
-            // TODO: send response to the correct tester
+            validator_mq_extract_pidstr(buffer, pid_msg_part);
+            tester_mq_get_name_from_pidstr(pid_msg_part, tester_mq_name);
+
+            tester_mq = tester_mq_start(false, tester_mq_name);
+            tester_mq_send_halt(tester_mq);
+            tester_mq_finish(tester_mq);
+
             // TODO: update local logs
-            break;
+            exit(0);
         default:
             await_forks++;
             await_runs--;

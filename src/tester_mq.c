@@ -4,6 +4,7 @@
 
 #include <string.h>
 #include <assert.h>
+#include <stdio.h>
 #include "tester_mq.h"
 #include "config.h"
 
@@ -14,10 +15,12 @@ void tester_mq_get_name_from_pid(pid_t pid, char *target) {
     pidstr(pid, target + TESTER_MQ_NAME_PREFIX_LEN);
 }
 
-void tester_mq_get_name_from_message(const char *pid_msg_part, char *target) {
+void tester_mq_get_name_from_pidstr(const char *pid_msg_part, char *target) {
     assert(sizeof(target) == TESTER_MQ_NAME_LEN);
 
-    // TODO: Extract part of message containing PID and copy it to target name
+    memcpy(target, TESTER_MQ_NAME_PREFIX, TESTER_MQ_NAME_PREFIX_LEN);
+    memcpy(target+TESTER_MQ_NAME_PREFIX_LEN, pid_msg_part, PID_STR_LEN);
+    // TODO: Make sure no additional trailing \0 is needed
 }
 
 mqd_t tester_mq_start(bool server, const char *tester_mq_name) {
@@ -40,7 +43,7 @@ void tester_mq_send_halt(mqd_t tester_mq) {
     // TODO
 }
 
-void tester_mq_send_validation_result(mqd_t tester_mq, const char *buffer, size_t buffer_size) {
+extern void tester_mq_send_validation_result(mqd_t tester_mq, const char * word, const char * flag) {
     // TODO
 }
 
