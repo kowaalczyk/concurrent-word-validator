@@ -10,6 +10,12 @@
 
 // TODO: Figure a way to kill everything in case of error
 
+const char VALIDATOR_MQ_FLAG_HALT = HALT_FLAG;
+const char VALIDATOR_MQ_FLAG_START = 'S';
+const char VALIDATOR_MQ_FLAG_FINISH_PASSED = VALIDATION_PASSED_FLAG;
+const char VALIDATOR_MQ_FLAG_FINISH_FAILED = VALIDATION_FAILED_FLAG;
+
+
 mqd_t validator_mq_start(bool server) {
     // TODO: Server
 //    char * q_name = PW_VQ_REQUEST_NAME_PREFIX;

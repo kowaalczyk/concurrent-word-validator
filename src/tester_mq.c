@@ -8,6 +8,14 @@
 #include "tester_mq.h"
 #include "config.h"
 
+
+const char TESTER_MQ_FLAG_HALT = HALT_FLAG;
+const char TESTER_MQ_FLAG_PASSED = VALIDATION_PASSED_FLAG;
+const char TESTER_MQ_FLAG_FAILED = VALIDATION_FAILED_FLAG;
+
+const char TESTER_MQ_NAME_PREFIX[] = "/pw_validator_tester_mq_"; // make sure TESTER_MQ_NAME_PREFIX_LEN is set correctly
+
+
 void tester_mq_get_name_from_pid(pid_t pid, char *target) {
     assert(sizeof(target) == TESTER_MQ_NAME_LEN);
 

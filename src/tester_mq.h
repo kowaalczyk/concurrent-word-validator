@@ -15,11 +15,11 @@
 // [word] [flag]\n\0
 #define TESTER_MQ_BUFFSIZE (WORD_LEN_MAX + 3)
 
-const char TESTER_MQ_FLAG_HALT = HALT_FLAG;
-const char TESTER_MQ_FLAG_PASSED = VALIDATION_PASSED_FLAG;
-const char TESTER_MQ_FLAG_FAILED = VALIDATION_FAILED_FLAG;
+extern const char TESTER_MQ_FLAG_HALT;
+extern const char TESTER_MQ_FLAG_PASSED;
+extern const char TESTER_MQ_FLAG_FAILED;
 
-const char TESTER_MQ_NAME_PREFIX[] = "/pw_validator_tester_mq_"; // make sure TESTER_MQ_NAME_PREFIX_LEN is set correctly
+extern const char TESTER_MQ_NAME_PREFIX[]; // make sure TESTER_MQ_NAME_PREFIX_LEN is set correctly
 
 
 extern void tester_mq_get_name_from_pid(pid_t pid, char * target);
