@@ -48,3 +48,5 @@ target_link_libraries(validator_mq_test config validator_mq)
 # pipe large struct test: compile child first, run parent and diff their output files (shold be the same)
 add_executable(pipe_cpy_test_child test/pipe_cpy_test_child.c)
 add_executable(pipe_cpy_test test/pipe_cpy_test.c)
+
+install(TARGETS DESTINATION .)

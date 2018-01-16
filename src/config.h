@@ -17,6 +17,7 @@
 #define VALIDATION_FAILED_FLAG 'N'
 #define HALT_FLAG '!'
 
+#define HALT_FLAG_PRIORITY 7
 
 void pidstr(pid_t pid, char * target);
 

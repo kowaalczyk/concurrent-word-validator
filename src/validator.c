@@ -97,7 +97,7 @@ void async_signal_halt(const char * buffer, ssize_t buffer_size) {
 
             tester_mq = tester_mq_start(false, tester_mq_name);
             tester_mq_send_halt(tester_mq);
-            tester_mq_finish(tester_mq);
+            tester_mq_finish(false, tester_mq, tester_mq_name);
 
             // TODO: update local logs
             exit(0);

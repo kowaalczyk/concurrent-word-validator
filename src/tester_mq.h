@@ -38,6 +38,6 @@ extern bool tester_mq_received_halt(const char * buffer, ssize_t buffer_size);
 
 extern bool tester_mq_received_validation_result(const char * buffer, ssize_t buffer_size);
 
-extern void tester_mq_finish(mqd_t tester_mq);
+void tester_mq_finish(bool server, mqd_t tester_mq, const char * tester_mq_name);
 
 #endif //PW_VALIDATOR_TESTER_MQ_H
