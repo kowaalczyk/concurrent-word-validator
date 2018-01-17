@@ -11,7 +11,9 @@
 // TODO: Refactor #defines to include project prefix
 
 #define WORD_LEN_MAX 1000
-#define PID_STR_LEN (sizeof(pid_t))
+
+// 1 byte holds 3 digits at maximum, so 3x sizeof in bytes is enough to hold pid_t as string
+#define PID_STR_LEN (sizeof(pid_t)*3)
 
 #define VALIDATION_PASSED_FLAG 'A'
 #define VALIDATION_FAILED_FLAG 'N'

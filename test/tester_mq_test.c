@@ -6,12 +6,13 @@
 #include <zconf.h>
 #include <stdio.h>
 #include <wait.h>
+#include <assert.h>
 #include "../src/err.h"
 #include "../src/tester_mq.h"
 
 // TEST PARAMS:
 const bool enable_log = true;
-const int send_delay_in_seconds = 10;
+const int send_delay_in_seconds = 3;
 
 
 
@@ -63,25 +64,41 @@ void async_sender(const char * mq_name) {
 int main() {
     char tester_mq_name[TESTER_MQ_NAME_LEN];
     tester_mq_get_name_from_pid(getpid(), tester_mq_name);
-    mqd_t tester_mq = tester_mq_start(true, tester_mq_name);
 
+    printf("Starting fork with queue name: %s\n", tester_mq_name);
     async_sender(tester_mq_name);
 
+    mqd_t tester_mq = tester_mq_start(true, tester_mq_name);
+
+    struct mq_attr tmp;
+    mq_getattr(tester_mq, &tmp);
+    printf("%li\n", tmp.mq_msgsize);
+
     int i=3;
-    char tester_mq_buff[TESTER_MQ_BUFFSIZE];
+    size_t tester_mq_buffsize = tester_mq_get_buffsize(tester_mq);
+    char tester_mq_buff[tester_mq_buffsize];
     ssize_t response_ret;
     while(--i >= 0) {
-        response_ret = tester_mq_receive(tester_mq, tester_mq_buff, TESTER_MQ_BUFFSIZE);
+        response_ret = tester_mq_receive(tester_mq, tester_mq_buff, tester_mq_buffsize);
         if(response_ret == -1) {
             log("RECEIVER: Error receiving message");
         } else {
+            switch (i){
+                case 2:
+                    assert(tester_mq_received_halt(tester_mq_buff, response_ret));
+                    break;
+                default:
+                    assert(tester_mq_received_validation_result(tester_mq_buff, response_ret));
+            }
             log("RECEIVER: received message:");
             log(tester_mq_buff);
         }
         log("");
     }
 
+    log("RECEIVER: finishing...");
     tester_mq_finish(true, tester_mq, tester_mq_name);
+    log("RECEIVER: finished");
 
     wait(NULL); // wait for sender
     return 0;
