@@ -16,12 +16,6 @@
 // [word] [flag]\n\0
 #define TESTER_MQ_BUFFSIZE (WORD_LEN_MAX + 4)
 
-extern const char TESTER_MQ_FLAG_HALT;
-extern const char TESTER_MQ_FLAG_PASSED;
-extern const char TESTER_MQ_FLAG_FAILED;
-
-extern const char TESTER_MQ_NAME_PREFIX[]; // make sure TESTER_MQ_NAME_PREFIX_LEN is set correctly
-
 /**
  * Creates C-string containing tester_mq name created based on provided pid
  * @param pid
@@ -42,21 +36,21 @@ extern void tester_mq_get_name_from_pidstr(const char *pid_msg_part, char *targe
  * @param tester_mq_name
  * @return - descriptor of created tester mq
  */
-extern mqd_t tester_mq_start(bool server, const char * tester_mq_name);
+extern mqd_t tester_mq_start(bool server, const char *tester_mq_name, bool *err);
 
 /**
  * Returns buffer size necesssary to receive message from provided tester_mq
  * @param queue
  * @return - minimum necessary size of buffer
  */
-size_t tester_mq_get_buffsize(mqd_t queue);
+size_t tester_mq_get_buffsize(mqd_t queue, bool *err);
 
 /**
  * Blocking.
  * Sends halt to provided tester mq
  * @param tester_mq
  */
-extern void tester_mq_send_halt(mqd_t tester_mq);
+extern void tester_mq_send_halt(mqd_t tester_mq, bool *err);
 
 /**
  * Blocking.
@@ -65,7 +59,7 @@ extern void tester_mq_send_halt(mqd_t tester_mq);
  * @param word - word that was validated
  * @param flag - validation result
  */
-extern void tester_mq_send_validation_result(mqd_t tester_mq, const char * word, const char * flag);
+extern void tester_mq_send_validation_result(mqd_t tester_mq, const char *word, const char *flag, bool *err);
 
 /**
  * Blocking.
@@ -75,7 +69,7 @@ extern void tester_mq_send_validation_result(mqd_t tester_mq, const char * word,
  * @param buffer_size - size of buffer, must not be smaller than tester_mq message size
  * @return - size of received message
  */
-extern ssize_t tester_mq_receive(mqd_t tester_mq, char * buffer, size_t buffer_size);
+extern ssize_t tester_mq_receive(mqd_t tester_mq, char *buffer, size_t buffer_size, bool *err);
 
 /**
  * Checks if tester mq received halt message
@@ -100,6 +94,6 @@ extern bool tester_mq_received_validation_result(const char * buffer, ssize_t bu
  * @param tester_mq
  * @param tester_mq_name
  */
-void tester_mq_finish(bool server, mqd_t tester_mq, const char * tester_mq_name);
+void tester_mq_finish(bool server, mqd_t tester_mq, const char *tester_mq_name, bool *err);
 
 #endif //PW_VALIDATOR_TESTER_MQ_H
