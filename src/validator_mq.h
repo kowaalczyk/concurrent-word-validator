@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include "config.h"
 
-// [flag]-[pidstr]-[word]\0
+// [flag]-[pidstr]-[word]\n\0
 #define VALIDATOR_MQ_BUFFSIZE (WORD_LEN_MAX + PID_STR_LEN + 4)
 
 extern const char VALIDATOR_MQ_FLAG_HALT;
@@ -24,7 +24,14 @@ extern const char VALIDATOR_MQ_FLAG_FINISH_FAILED;
  * @param server - if true, queue will be read-only
  * @return descriptor of created queue
  */
-extern mqd_t validator_mq_start(bool server);
+extern mqd_t validator_mq_start(bool server, bool *err);
+
+/**
+ * Returns buffer size necesssary to receive message from provided tester_mq
+ * @param queue
+ * @return - minimum necessary size of buffer
+ */
+extern size_t validator_mq_get_buffsize(mqd_t validator_mq, bool *err);
 
 /**
  * Sends a validation start request containing provided word to provided mq,
@@ -32,7 +39,7 @@ extern mqd_t validator_mq_start(bool server);
  * @param validator_mq - message queue created using validator_mq_start
  * @param word - word to validate
  */
-extern void validator_mq_send_validation_start_request(mqd_t validator_mq, const char * word);
+extern void validator_mq_send_validation_start_request(mqd_t validator_mq, const char *word, bool *err);
 
 /**
  * Waits until a message is received via provided mq,
@@ -42,7 +49,7 @@ extern void validator_mq_send_validation_start_request(mqd_t validator_mq, const
  * @param buffer_size - maximum length of message that can be written to buffer
  * @return size of received message
  */
-extern ssize_t validator_mq_receive(mqd_t validator_mq, char * buffer, size_t buffer_size);
+extern ssize_t validator_mq_receive(mqd_t validator_mq, char *buffer, size_t buffer_size, bool *err);
 
 /**
  * Checks if request type is halt.
@@ -94,6 +101,6 @@ extern void validator_mq_extract_flag(const char * buffer, char * target);
  * if any error occurs during creation, closes all programs.
  * @param validator_mq
  */
-extern void validator_mq_finish(mqd_t validator_mq);
+extern void validator_mq_finish(mqd_t validator_mq, bool *err);
 
 #endif //PW_VALIDATOR_VALIDATOR_MQ_H

@@ -9,6 +9,7 @@
 #include <zconf.h>
 #include <wait.h>
 #include <assert.h>
+#include <errno.h>
 #include "automaton.h"
 #include "err.h"
 #include "validator_mq.h"
@@ -18,6 +19,23 @@
 bool halt_flag_raised = false;
 size_t await_runs = 0;
 size_t await_forks = 0;
+
+/**
+ * Error handler.
+ * Raises halt flag, without exiting.
+ */
+void raise_halt_flag() {
+    halt_flag_raised = true;
+}
+
+/**
+ * Error handler.
+ * Exits child program with errno return status code.
+ */
+void exit_with_errno() {
+    // TODO: Clean and log
+    exit(errno);
+}
 
 /**
  * Asynchronous.
@@ -47,6 +65,7 @@ void async_start_validation(const char *buffer, ssize_t buffer_size) {
     }
 }
 
+// TODO: Forks should immediately close validator mq
 // TODO: Make sure multiple opening and closing tester_mqs in forks is working, if not implement vector of mqd_t-s w/ names
 
 /**
@@ -56,6 +75,7 @@ void async_start_validation(const char *buffer, ssize_t buffer_size) {
  * @param buffer_size - actual length of data in buffer
  */
 void async_forward_response(const char * buffer, ssize_t buffer_size) {
+    bool err = false;
     char pid_msg_part[PID_STR_LEN];
     char word_msg_part[WORD_LEN_MAX];
     char flag_msg_part;
@@ -71,9 +91,12 @@ void async_forward_response(const char * buffer, ssize_t buffer_size) {
             validator_mq_extract_flag(buffer, &flag_msg_part);
 
             tester_mq_get_name_from_pidstr(pid_msg_part, tester_mq_name);
-            tester_mq = tester_mq_start(false, tester_mq_name);
-            tester_mq_send_validation_result(tester_mq, word_msg_part, &flag_msg_part);
-            tester_mq_finish(tester_mq);
+            tester_mq = tester_mq_start(false, tester_mq_name, &err);
+            HANDLE_ERR(exit_with_errno);
+            tester_mq_send_validation_result(tester_mq, word_msg_part, &flag_msg_part, &err);
+            HANDLE_ERR(exit_with_errno);
+            tester_mq_finish(false, tester_mq, NULL, &err);
+            HANDLE_ERR(exit_with_errno);
 
             // TODO: update local logs
             exit(0);
@@ -84,6 +107,7 @@ void async_forward_response(const char * buffer, ssize_t buffer_size) {
 }
 
 void async_signal_halt(const char * buffer, ssize_t buffer_size) {
+    bool err = false;
     char pid_msg_part[PID_STR_LEN];
     char tester_mq_name[TESTER_MQ_NAME_LEN];
     mqd_t tester_mq;
@@ -95,9 +119,12 @@ void async_signal_halt(const char * buffer, ssize_t buffer_size) {
             validator_mq_extract_pidstr(buffer, pid_msg_part);
             tester_mq_get_name_from_pidstr(pid_msg_part, tester_mq_name);
 
-            tester_mq = tester_mq_start(false, tester_mq_name);
-            tester_mq_send_halt(tester_mq);
-            tester_mq_finish(false, tester_mq, tester_mq_name);
+            tester_mq = tester_mq_start(false, tester_mq_name, &err);
+            HANDLE_ERR(exit_with_errno);
+            tester_mq_send_halt(tester_mq, &err);
+            HANDLE_ERR(exit_with_errno);
+            tester_mq_finish(false, tester_mq, tester_mq_name, &err);
+            HANDLE_ERR(exit_with_errno);
 
             // TODO: update local logs
             exit(0);
@@ -108,15 +135,18 @@ void async_signal_halt(const char * buffer, ssize_t buffer_size) {
 }
 
 int main() {
+    bool err = false;
     // setup
     const automaton * a = load_automaton();
     char request_buff[VALIDATOR_MQ_BUFFSIZE];
     ssize_t request_ret;
-    mqd_t request_mq = validator_mq_start(true); // 1=> server, 0=> client
+    mqd_t request_mq = validator_mq_start(true, &err);
+    HANDLE_ERR(exit_with_errno);
 
     // handle incoming requests
     while(!halt_flag_raised) {
-        request_ret = validator_mq_receive(request_mq, request_buff, VALIDATOR_MQ_BUFFSIZE);
+        request_ret = validator_mq_receive(request_mq, request_buff, VALIDATOR_MQ_BUFFSIZE, &err);
+        HANDLE_ERR(raise_halt_flag);
 
         // process request
         if(validator_mq_requested_halt(request_buff, request_ret)) {
@@ -134,7 +164,8 @@ int main() {
     }
     // after halt flag is raised, wait for runs to complete and halt other testers if necessary
     while(await_runs) {
-        request_ret = validator_mq_receive(request_mq, request_buff, VALIDATOR_MQ_BUFFSIZE);
+        request_ret = validator_mq_receive(request_mq, request_buff, VALIDATOR_MQ_BUFFSIZE, &err);
+        HANDLE_ERR_DECREMENT_CONTINUE(await_runs);
 
         // process request
         if(validator_mq_requested_validation_finish(request_buff, request_ret)) {
@@ -147,12 +178,13 @@ int main() {
     }
 
     // clean up
-    validator_mq_finish(request_mq);
+    validator_mq_finish(request_mq, &err);
+    HANDLE_ERR(exit_with_errno); // TODO: Really check this
     free((void *) a);
     while(await_forks) {
         // TODO: Handle errors from forks
         wait(NULL);
         await_forks--;
     }
-    return 0;
+    return -errno; // TODO: Really check this
 }

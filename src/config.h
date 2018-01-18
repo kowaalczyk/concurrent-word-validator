@@ -29,6 +29,7 @@
 #define INT_FAIL_IF(x) do {if(x) {if(err != NULL) *err = true; return -1;}} while(false)
 #define VOID_FAIL_IF(x) do {if(x) {if(err != NULL) *err = true; return;}} while(false)
 #define HANDLE_ERR(err_handler) do {if(err) {(err_handler)();}} while(false)
+#define HANDLE_ERR_DECREMENT_CONTINUE(to_decrement) do {if(err) (to_decrement)--; continue;} while(false)
 
 /**
  * Converts provided pid to formatted C-string and writes it to the target
