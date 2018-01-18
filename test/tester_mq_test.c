@@ -133,5 +133,5 @@ int main() {
     log("RECEIVER: finished");
 
     wait(NULL); // wait for sender
-    return 0;
+    return errno;
 }

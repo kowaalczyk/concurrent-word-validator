@@ -8,7 +8,8 @@
 #include <mqueue.h>
 #include <wait.h>
 #include <memory.h>
-#include "err.h"
+#include <errno.h>
+#include "err.h" // TODO: Implement own error handling (!!!)
 #include "validator_mq.h"
 #include "tester_mq.h"
 
@@ -27,19 +28,30 @@ void kill_all_exit() {
 }
 
 /**
+ * Error handler.
+ * Exits child program with errno return status code.
+ */
+void exit_with_errno() {
+    // TODO: Clean and log
+    exit(errno);
+}
+
+// TODO: Forks should immediately close tester_mq
+
+/**
  * Asynchronous.
  * Sends word as a request to validator
  * @param validator_mq
  * @param word
  */
 void async_send_request_to_validator(mqd_t validator_mq, const char * word) {
-    bool err;
+    bool err = false;
     switch (fork()) {
         case -1:
             syserr("TESTER: Error in fork");
         case 0:
             validator_mq_send_validation_start_request(validator_mq, word, &err);
-            HANDLE_ERR(kill_all_exit);
+            HANDLE_ERR(exit_with_errno);
             exit(0);
         default:
             await_response++;
@@ -55,15 +67,15 @@ int main() {
     char tester_mq_name[TESTER_MQ_NAME_LEN];
     tester_mq_get_name_from_pid(getpid(), tester_mq_name);
     mqd_t tester_mq = tester_mq_start(true, tester_mq_name, &err);
-    HANDLE_ERR(kill_all_exit);
+    HANDLE_ERR(exit_with_errno);
 
     mqd_t validator_mq = validator_mq_start(false, &err); // assuming there is only one validator
-    HANDLE_ERR(kill_all_exit);
+    HANDLE_ERR(exit_with_errno);
 
     // setup buffer
     char input_buffer[WORD_LEN_MAX];
     size_t request_buffer_len = validator_mq_get_buffsize(validator_mq, &err);
-    HANDLE_ERR(kill_all_exit);
+    HANDLE_ERR(exit_with_errno);
     char request_buffer[request_buffer_len];
 
     // load words and send them asynchronously
@@ -74,14 +86,14 @@ int main() {
         async_send_request_to_validator(validator_mq, request_buffer);
     }
     validator_mq_finish(validator_mq, &err);
-    HANDLE_ERR(kill_all_exit);
+    HANDLE_ERR(exit_with_errno);
 
     // process validator responses synchronously
     ssize_t response_ret;
     char response_buffer[TESTER_MQ_BUFFSIZE];
     while(await_response) {
         response_ret = tester_mq_receive(tester_mq, response_buffer, TESTER_MQ_BUFFSIZE, &err);
-        HANDLE_ERR(kill_all_exit);
+        HANDLE_ERR_DECREMENT_CONTINUE(await_response);
 
         if(tester_mq_received_halt(response_buffer, response_ret)) {
             // TODO: Kill all sending forks
@@ -97,7 +109,7 @@ int main() {
 
     // clean up
     tester_mq_finish(true, tester_mq, tester_mq_name, &err);
-    HANDLE_ERR(kill_all_exit);
+    HANDLE_ERR(kill_all_exit); // TODO: Really check this
 
     while(await_forks) {
         // TODO: Handle errors from forks
@@ -105,5 +117,5 @@ int main() {
         await_forks--;
     }
     // TODO: Print report
-    return 0;
+    return -errno; // TODO: Really check this
 }
