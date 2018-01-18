@@ -178,7 +178,7 @@ int main() {
     }
 
     // clean up
-    validator_mq_finish(request_mq, &err);
+    validator_mq_finish(request_mq, true, &err);
     HANDLE_ERR(exit_with_errno); // TODO: Really check this
     free((void *) a);
     while(await_forks) {

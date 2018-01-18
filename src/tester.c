@@ -85,7 +85,8 @@ int main() {
         memcpy(request_buffer, input_buffer, input_word_len);
         async_send_request_to_validator(validator_mq, request_buffer);
     }
-    validator_mq_finish(validator_mq, &err);
+    // TODO: Request halt vs don't block other testers
+    validator_mq_finish(validator_mq, false, &err);
     HANDLE_ERR(exit_with_errno);
 
     // process validator responses synchronously

@@ -41,6 +41,9 @@ extern size_t validator_mq_get_buffsize(mqd_t validator_mq, bool *err);
  */
 extern void validator_mq_send_validation_start_request(mqd_t validator_mq, const char *word, bool *err);
 
+// TODO: Send halt
+// TODO: Send validation result
+
 /**
  * Waits until a message is received via provided mq,
  * if any error occurs during creation, closes all programs.
@@ -101,6 +104,6 @@ extern void validator_mq_extract_flag(const char * buffer, char * target);
  * if any error occurs during creation, closes all programs.
  * @param validator_mq
  */
-extern void validator_mq_finish(mqd_t validator_mq, bool *err);
+extern void validator_mq_finish(mqd_t validator_mq, bool server, bool *err);
 
 #endif //PW_VALIDATOR_VALIDATOR_MQ_H
