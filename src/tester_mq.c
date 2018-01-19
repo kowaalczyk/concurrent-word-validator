@@ -9,27 +9,28 @@
 #include <fcntl.h>
 
 #include "tester_mq.h"
-#include "err.h"
 
 #define TESTER_MQ_PERMISSIONS 0666
-
-static const char TESTER_MQ_FLAG_HALT = HALT_FLAG;
-static const char TESTER_MQ_FLAG_PASSED = VALIDATION_PASSED_FLAG;
-static const char TESTER_MQ_FLAG_FAILED = VALIDATION_FAILED_FLAG;
 
 static const char TESTER_MQ_NAME_PREFIX[] = "/pw_validator_tester_mq_"; // make sure TESTER_MQ_NAME_PREFIX_LEN is set correctly
 
 void tester_mq_get_name_from_pid(pid_t pid, char *target) {
+    assert(target != NULL);
+
     memcpy(target, TESTER_MQ_NAME_PREFIX, TESTER_MQ_NAME_PREFIX_LEN);
     pidstr(pid, target + TESTER_MQ_NAME_PREFIX_LEN);
 }
 
-void tester_mq_get_name_from_pidstr(const char *pid_msg_part, char *target) {
+void tester_mq_get_name_from_pidstr(const char *pid_str, char *target) {
+    assert(target != NULL);
+
     memcpy(target, TESTER_MQ_NAME_PREFIX, TESTER_MQ_NAME_PREFIX_LEN);
-    memcpy(target+TESTER_MQ_NAME_PREFIX_LEN, pid_msg_part, PID_STR_LEN);
+    memcpy(target+TESTER_MQ_NAME_PREFIX_LEN, pid_str, PID_STR_LEN);
 }
 
 mqd_t tester_mq_start(bool server, const char *tester_mq_name, bool *err) {
+    assert(tester_mq_name != NULL && err != NULL);
+
     int tmp_err;
     mqd_t queue;
 
@@ -41,11 +42,7 @@ mqd_t tester_mq_start(bool server, const char *tester_mq_name, bool *err) {
         struct mq_attr tester_mq_attrs;
         tmp_err = mq_getattr(queue, &tester_mq_attrs);
         INT_FAIL_IF(tmp_err == -1);
-        if(tester_mq_attrs.mq_msgsize < TESTER_MQ_BUFFSIZE) {
-            tester_mq_attrs.mq_msgsize = TESTER_MQ_BUFFSIZE;
-            tmp_err = mq_setattr(queue, &tester_mq_attrs, NULL); // TODO: This might be impossible, instead of resizing set correct errno
-            INT_FAIL_IF(tmp_err == -1);
-        }
+        INT_FAIL_IF(tester_mq_attrs.mq_msgsize < sizeof(tester_mq_msg));
     } else {
         queue = mq_open(tester_mq_name, O_WRONLY);
         INT_FAIL_IF(queue == -1);
@@ -55,6 +52,8 @@ mqd_t tester_mq_start(bool server, const char *tester_mq_name, bool *err) {
 }
 
 size_t tester_mq_get_buffsize(mqd_t queue, bool *err) {
+    assert(err != NULL);
+
     int tmp_err;
     struct mq_attr tmp;
 
@@ -64,6 +63,8 @@ size_t tester_mq_get_buffsize(mqd_t queue, bool *err) {
 }
 
 void tester_mq_finish(bool server, mqd_t tester_mq, const char *tester_mq_name, bool *err) {
+    assert(tester_mq_name != NULL && err != NULL);
+
     int tmp_err;
 
     tmp_err = mq_close(tester_mq);
@@ -75,45 +76,29 @@ void tester_mq_finish(bool server, mqd_t tester_mq, const char *tester_mq_name, 
     }
 }
 
-void tester_mq_send_halt(mqd_t tester_mq, bool *err) {
+extern void tester_mq_send(mqd_t tester_mq, const char *word, bool completed, bool ignored, bool accepted, bool *err) {
+    assert(err != NULL);
+
     int tmp_err;
-    char buff[TESTER_MQ_BUFFSIZE];
+    tester_mq_msg msg = {completed, ignored, accepted, NULL};
+    if(word != NULL) {
+        memcpy(msg.word, word, strlen(word));
+    }
 
-    buff[0] = TESTER_MQ_FLAG_HALT;
-    buff[1] = '\n';
-    buff[2] = '\0';
-
-    tmp_err = mq_send(tester_mq, buff, 2, HALT_FLAG_PRIORITY);
+    tmp_err = mq_send(tester_mq, (const char *)&msg, sizeof(msg), NORMAL_FLAG_PRIORITY);
     VOID_FAIL_IF(tmp_err == -1);
 }
 
-extern void tester_mq_send_validation_result(mqd_t tester_mq, const char *word, const char *flag, bool *err) {
-    assert(flag[0] == TESTER_MQ_FLAG_PASSED || flag[0] == TESTER_MQ_FLAG_FAILED);
+ssize_t tester_mq_receive(mqd_t tester_mq, tester_mq_msg *msg, bool *err) {
+    assert(msg != NULL && err != NULL);
 
-    int tmp_err;
-    char buff[TESTER_MQ_BUFFSIZE];
-    size_t word_len = strlen(word);
+    size_t buffsize = tester_mq_get_buffsize(tester_mq, err);
+    INT_FAIL_IF(*err);
 
-    memcpy(buff, word, word_len);
-    buff[word_len] = ' ';
-    memcpy(buff+word_len+1, flag, 1);
-    buff[word_len+2] = '\n';
-    buff[word_len+3] = '\0';
-
-    tmp_err = mq_send(tester_mq, buff, word_len+3, NORMAL_FLAG_PRIORITY);
-    VOID_FAIL_IF(tmp_err == -1);
-}
-
-ssize_t tester_mq_receive(mqd_t tester_mq, char *buffer, size_t buffer_size, bool *err) {
-    ssize_t request_ret = mq_receive(tester_mq, buffer, buffer_size, NULL);
+    char buff[buffsize];
+    ssize_t request_ret = mq_receive(tester_mq, buff, buffsize, NULL);
     INT_FAIL_IF(request_ret == 0);
+
+    memcpy(msg, buff, sizeof(tester_mq_msg));
     return request_ret;
-}
-
-bool tester_mq_received_halt(const char *buffer, ssize_t buffer_size) {
-    return buffer[buffer_size-2] == '!';
-}
-
-bool tester_mq_received_validation_result(const char *buffer, ssize_t buffer_size) {
-    return buffer[buffer_size-2] == TESTER_MQ_FLAG_PASSED || buffer[buffer_size-2] == TESTER_MQ_FLAG_FAILED;
 }
