@@ -12,11 +12,6 @@
 // [flag]-[pidstr]-[word]\n\0
 #define VALIDATOR_MQ_BUFFSIZE (WORD_LEN_MAX + PID_STR_LEN + 4)
 
-extern const char VALIDATOR_MQ_FLAG_HALT;
-extern const char VALIDATOR_MQ_FLAG_START;
-extern const char VALIDATOR_MQ_FLAG_FINISH_PASSED;
-extern const char VALIDATOR_MQ_FLAG_FINISH_FAILED;
-
 
 /**
  * Creates message queue for sending requests to validator,
@@ -85,6 +80,8 @@ extern bool validator_mq_requested_validation_finish(const char * buffer, ssize_
  */
 extern void validator_mq_extract_pidstr(const char * buffer, char * target);
 
+extern pid_t validator_mq_extract_pid(const char *buffer);
+
 /**
  * Extracts word from buffer to target
  * @param buffer
@@ -98,6 +95,13 @@ extern void validator_mq_extract_word(const char * buffer, char * target);
  * @param target
  */
 extern void validator_mq_extract_flag(const char * buffer, char * target);
+
+/**
+ * Returns result of the validation, if buffer contains validation finished request.
+ * @param buffer
+ * @return
+ */
+extern bool validator_mq_validation_passed(const char *buffer);
 
 /**
  * Closes provided queue and cleans its data,

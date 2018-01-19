@@ -7,12 +7,13 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <stdio.h>
 
 // TODO: Figure a way to kill everything in case of error
 
 #define VALIDATOR_MQ_PERMISSIONS 0666
 
-static const char VALIDATOR_MQ_NAME = "/pw_validator_validator_mq_single";
+static const char VALIDATOR_MQ_NAME[] = "/pw_validator_validator_mq_single";
 
 static const char VALIDATOR_MQ_FLAG_HALT = HALT_FLAG;
 static const char VALIDATOR_MQ_FLAG_START = 'S';
@@ -25,7 +26,7 @@ mqd_t validator_mq_start(bool server, bool *err) {
     mqd_t queue;
 
     if(server) {
-        queue = mq_open(&VALIDATOR_MQ_NAME, O_RDONLY | O_CREAT, VALIDATOR_MQ_PERMISSIONS, NULL);
+        queue = mq_open(VALIDATOR_MQ_NAME, O_RDONLY | O_CREAT, VALIDATOR_MQ_PERMISSIONS, NULL);
         INT_FAIL_IF(queue == -1);
 
         // resize queue message size if it is too small
@@ -38,7 +39,7 @@ mqd_t validator_mq_start(bool server, bool *err) {
             INT_FAIL_IF(tmp_err == -1);
         }
     } else {
-        queue = mq_open(&VALIDATOR_MQ_NAME, O_WRONLY);
+        queue = mq_open(VALIDATOR_MQ_NAME, O_WRONLY);
         INT_FAIL_IF(queue == -1);
     }
     assert(queue != -1);
@@ -81,7 +82,7 @@ void validator_mq_finish(mqd_t validator_mq, bool server, bool *err) {
     VOID_FAIL_IF(tmp_err == -1);
 
     if(server) {
-        tmp_err = mq_unlink(&VALIDATOR_MQ_NAME);
+        tmp_err = mq_unlink(VALIDATOR_MQ_NAME);
         VOID_FAIL_IF(tmp_err == -1);
     }
 }
@@ -98,3 +99,14 @@ void validator_mq_extract_flag(const char *buffer, char *target) {
     memcpy(target, buffer, 1);
 }
 
+bool validator_mq_validation_passed(const char *buffer) {
+    return buffer[0] == VALIDATOR_MQ_FLAG_FINISH_PASSED;
+}
+
+pid_t validator_mq_extract_pid(const char *buffer) {
+    char tmp[PID_STR_LEN];
+    pid_t ans;
+    validator_mq_extract_pidstr(buffer, tmp);
+    sscanf(tmp, "%d", &ans);
+    return ans;
+}

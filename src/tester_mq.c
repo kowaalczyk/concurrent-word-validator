@@ -100,7 +100,7 @@ extern void tester_mq_send_validation_result(mqd_t tester_mq, const char *word, 
     buff[word_len+2] = '\n';
     buff[word_len+3] = '\0';
 
-    tmp_err = mq_send(tester_mq, buff, word_len+3, 1);
+    tmp_err = mq_send(tester_mq, buff, word_len+3, NORMAL_FLAG_PRIORITY);
     VOID_FAIL_IF(tmp_err == -1);
 }
 
