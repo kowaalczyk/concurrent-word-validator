@@ -4,19 +4,16 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <zconf.h>
-#include <mqueue.h>
-#include <wait.h>
-#include <memory.h>
 #include <errno.h>
-#include "err.h" // TODO: Implement own error handling (!!!)
+#include <zconf.h>
+#include <wait.h>
 #include "validator_mq.h"
 #include "tester_mq.h"
 
-pid_t parent_pid;
-
-size_t await_response = 0;
+pid_t main_pid;
 size_t await_forks = 0;
+
+// TODO: Signal handlers
 
 /**
  * Error handler.
@@ -40,7 +37,9 @@ void exit_with_errno() {
 
 /**
  * Asynchronous.
- * Sends word as a request to validator
+ * Sends word as a request to validator, counts fork number for parent process.
+ * Child process will return 0 if sent successfully, negative value if an error occured,
+ * and positive value if it was interrupted by parent.
  * @param validator_mq
  * @param word
  */
@@ -48,24 +47,32 @@ void async_send_request_to_validator(mqd_t validator_mq, const char * word) {
     bool err = false;
     switch (fork()) {
         case -1:
-            syserr("TESTER: Error in fork");
+//            syserr("TESTER: Error in fork");
+            break;
         case 0:
+            // TODO: Set handler to exit(1) if parent interrupts
             validator_mq_send_validation_start_request(validator_mq, word, &err);
             HANDLE_ERR(exit_with_errno);
             exit(0);
         default:
-            await_response++;
             await_forks++;
     }
 }
 
+struct comm_summary{
+    size_t snt;
+    size_t rcd;
+    size_t acc;
+};
+
 int main() {
     bool err = false;
-    parent_pid = getpid();
+    main_pid = getpid();
+    struct comm_summary comm_summary = {0, 0, 0};
 
     // setup queues
     char tester_mq_name[TESTER_MQ_NAME_LEN];
-    tester_mq_get_name_from_pid(getpid(), tester_mq_name);
+    tester_mq_get_name_from_pid(main_pid, tester_mq_name);
     mqd_t tester_mq = tester_mq_start(true, tester_mq_name, &err);
     HANDLE_ERR(exit_with_errno);
 
@@ -84,38 +91,45 @@ int main() {
         memcpy(request_buffer, input_buffer, input_word_len);
         async_send_request_to_validator(validator_mq, request_buffer);
     }
-    // TODO: Request halt vs don't block other testers
     validator_mq_finish(validator_mq, false, &err);
     HANDLE_ERR(exit_with_errno);
 
     // process validator responses synchronously
-    ssize_t response_ret;
-    char response_buffer[TESTER_MQ_BUFFSIZE];
-    while(await_response) {
-        response_ret = tester_mq_receive(tester_mq, response_buffer, TESTER_MQ_BUFFSIZE, &err);
-        HANDLE_ERR_DECREMENT_CONTINUE(await_response);
+    tester_mq_msg response_msg;
+    while(true) {
+        tester_mq_receive(tester_mq, &response_msg, &err);
+        HANDLE_ERR(kill_all_exit);
 
-        if(tester_mq_received_halt(response_buffer, response_ret)) {
-            // TODO: Kill all sending forks
-
-        } else if(tester_mq_received_validation_result(response_buffer, response_ret)) {
-            printf("%s", response_buffer); // \n is already present in a response
-
-        } else {
-            syserr("TESTER: Received invalid response from validator");
+        comm_summary.rcd++;
+        if(!response_msg.ignored) {
+            if(response_msg.accepted) {
+                comm_summary.acc++;
+                printf("%s A\n", response_msg.word);
+            } else {
+                printf("%s N\n", response_msg.word);
+            }
         }
-        await_response--;
+        if(response_msg.completed) {
+            break;
+        }
     }
-
     // clean up
     tester_mq_finish(true, tester_mq, tester_mq_name, &err);
-    HANDLE_ERR(kill_all_exit); // TODO: Really check this
+    HANDLE_ERR(kill_all_exit);
 
     while(await_forks) {
-        // TODO: Handle errors from forks by counting number of sent words
-        wait(NULL);
+        pid_t tmp_pid;
+        int wait_ret;
+        tmp_pid = wait(&wait_ret);
+        if(tmp_pid == -1) {
+            kill_all_exit();
+        }
+        if(wait_ret == 0) {
+            comm_summary.snt++;
+        }
         await_forks--;
     }
-    // TODO: Print report
-    return -errno; // TODO: Really check this
+    // print comm summary
+    printf("Snt: %zu\nRcd: %zu\nAcc: %zu\n", comm_summary.snt, comm_summary.rcd, comm_summary.acc);
+    return 0;
 }
