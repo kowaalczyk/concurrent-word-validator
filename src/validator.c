@@ -14,6 +14,7 @@
 #include "err.h"
 #include "validator_mq.h"
 #include "tester_mq.h"
+#include "tester_list.h"
 
 
 bool halt_flag_raised = false;
@@ -106,6 +107,12 @@ void async_forward_response(const char * buffer, ssize_t buffer_size) {
     }
 }
 
+/**
+ * Asynchronous.
+ * Send halt signal as a response to message (provided as buffer).
+ * @param buffer - buffer that contains message with extractable pid of sender
+ * @param buffer_size - actual length of data in buffer
+ */
 void async_signal_halt(const char * buffer, ssize_t buffer_size) {
     bool err = false;
     char pid_msg_part[PID_STR_LEN];
@@ -141,7 +148,9 @@ int main() {
     char request_buff[VALIDATOR_MQ_BUFFSIZE];
     ssize_t request_ret;
     mqd_t request_mq = validator_mq_start(true, &err);
-    HANDLE_ERR(exit_with_errno);
+    HANDLE_ERR_EXIT_WITH_MSG("Could not start validator mq");
+    tester_list_t * tester_data = tester_list_create(&err);
+    HANDLE_ERR_EXIT_WITH_MSG("Could create tester list");
 
     // handle incoming requests
     while(!halt_flag_raised) {
@@ -153,9 +162,25 @@ int main() {
             halt_flag_raised = true;
 
         } else if(validator_mq_requested_validation_finish(request_buff, request_ret)) {
-            async_forward_response(request_buff, request_ret);
+            // Update local logs and forward response TODO: Function
+            pid_t tester_pid = validator_mq_extract_pid(request_buff);
+            tester_t * tester = tester_list_find(tester_data, tester_pid);
+            assert(tester != NULL); // TODO: Really check this
+            if(validator_mq_validation_passed(request_buff)) {
+                tester->acc += 1;
+            }
+            async_forward_response(request_buff, request_ret); // TODO: Use found pid for faster sending
 
         } else if(validator_mq_requested_validation_start(request_buff, request_ret)) {
+            // Update local logs and start validation TODO: Function
+            pid_t tester_pid = validator_mq_extract_pid(request_buff);
+            tester_t * tester = tester_list_find(tester_data, tester_pid);
+            if(tester) {
+                tester->rcd += 1;
+            } else {
+                tester_list_emplace(tester_data, tester_pid, 1, 0, &err);
+                HANDLE_ERR(raise_halt_flag);
+            }
             async_start_validation(request_buff, request_ret);
 
         } else {
@@ -186,5 +211,8 @@ int main() {
         wait(NULL);
         await_forks--;
     }
-    return -errno; // TODO: Really check this
+    // TODO: Complete validator logs
+    tester_list_print_log(tester_data);
+    tester_list_destroy(tester_data);
+    return 0;
 }

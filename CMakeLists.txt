@@ -13,6 +13,9 @@ add_library(config STATIC src/config.c src/config.h)
 add_library(automaton STATIC src/automaton.h src/automaton.c)
 target_link_libraries(automaton config err)
 
+add_library(tester_list STATIC src/tester_list.h src/tester_list.c)
+target_link_libraries(tester_list config err)
+
 add_library(validator_mq STATIC src/validator_mq.c src/validator_mq.h)
 target_link_libraries(validator_mq config err rt)
 
@@ -31,7 +34,7 @@ target_link_libraries(tester_mq config err rt)
 
 # release executables
 add_executable(validator src/validator.c)
-target_link_libraries(validator config automaton validator_mq tester_mq)
+target_link_libraries(validator config automaton validator_mq tester_mq tester_list)
 
 add_executable(tester src/tester.c)
 target_link_libraries(tester config validator_mq tester_mq)

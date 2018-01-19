@@ -6,6 +6,7 @@
 #define PW_VALIDATOR_CONFIG_H
 
 #include <mqueue.h> // TODO: Make sure there is no better lib for pid_t
+#include <memory.h>
 #include <stdbool.h>
 
 // TODO: All common #defines go here
@@ -28,7 +29,9 @@
  */
 #define INT_FAIL_IF(x) do {if(x) {if(err != NULL) *err = true; return -1;}} while(false)
 #define VOID_FAIL_IF(x) do {if(x) {if(err != NULL) *err = true; return;}} while(false)
+#define PTR_FAIL_IF(x) do {if(x) {if(err != NULL) *err = true; return NULL;}} while(false)
 #define HANDLE_ERR(err_handler) do {if(err) {(err_handler)();}} while(false)
+#define HANDLE_ERR_EXIT_WITH_MSG(message) do {if(err) {fprintf(stderr, "%s - error number: %d (%s)\n", message, errno, strerror(errno)); exit(-1);}} while(false)
 #define HANDLE_ERR_DECREMENT_CONTINUE(to_decrement) do {if(err) (to_decrement)--; continue;} while(false)
 
 /**

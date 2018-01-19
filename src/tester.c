@@ -113,7 +113,7 @@ int main() {
     HANDLE_ERR(kill_all_exit); // TODO: Really check this
 
     while(await_forks) {
-        // TODO: Handle errors from forks
+        // TODO: Handle errors from forks by counting number of sent words
         wait(NULL);
         await_forks--;
     }
