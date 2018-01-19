@@ -30,26 +30,23 @@ void raise_halt_flag() {
 }
 
 /**
- * Error handler.
- * Exits child program with errno return status code.
- */
-void exit_with_errno() {
-    // TODO: Clean and log
-    exit(errno);
-}
-
-/**
  * Asynchronous.
  * Creates run process that will validate word from request.
+ * Internal errors are handled silently.
  * @param buffer - buffer to which validation start request was received
  * @param buffer_size - actual length of data in buffer
  */
 void async_start_validation(const char *buffer, ssize_t buffer_size) {
+    assert(!halt_flag_raised);
+
+    bool err = false;
     char word[WORD_LEN_MAX];
 
     switch (fork()) {
         case -1:
-            syserr("VALIDATOR: Error in fork");
+            err = true;
+            HANDLE_ERR(raise_halt_flag);
+            break;
         case 0:
             // child creates run, sends automaton via mq, closes it and exits
 //            get_request_word(buffer, buffer_size, word);
@@ -72,6 +69,7 @@ void async_start_validation(const char *buffer, ssize_t buffer_size) {
 /**
  * Asynchronous.
  * Forwards validation finished request to proper tester as a response.
+ * Internal errors are handled silently.
  * @param buffer - buffer to which validation finish request was received
  * @param buffer_size - actual length of data in buffer
  */
@@ -85,7 +83,8 @@ void async_forward_response(const char * buffer, ssize_t buffer_size) {
 
     switch (fork()) {
         case -1:
-            syserr("VALIDATOR: Error in fork");
+            err = true;
+            HANDLE_ERR_DECREMENT_BREAK(await_runs);
         case 0:
             validator_mq_extract_pidstr(buffer, pid_msg_part);
             validator_mq_extract_word(buffer, word_msg_part);
@@ -93,11 +92,11 @@ void async_forward_response(const char * buffer, ssize_t buffer_size) {
 
             tester_mq_get_name_from_pidstr(pid_msg_part, tester_mq_name);
             tester_mq = tester_mq_start(false, tester_mq_name, &err);
-            HANDLE_ERR(exit_with_errno);
+            HANDLE_ERR_EXIT_ERRNO_WITH_MSG("VALIDATOR: Failed to create tester_mq");
             tester_mq_send_validation_result(tester_mq, word_msg_part, &flag_msg_part, &err);
-            HANDLE_ERR(exit_with_errno);
+            HANDLE_ERR_EXIT_ERRNO_WITH_MSG("VALIDATOR: Failed to send validation result to tester_mq");
             tester_mq_finish(false, tester_mq, NULL, &err);
-            HANDLE_ERR(exit_with_errno);
+            HANDLE_ERR_EXIT_ERRNO_WITH_MSG("VALIDATOR: Failed to close tester_mq");
 
             // TODO: update local logs
             exit(0);
@@ -110,6 +109,7 @@ void async_forward_response(const char * buffer, ssize_t buffer_size) {
 /**
  * Asynchronous.
  * Send halt signal as a response to message (provided as buffer).
+ * Internal errors are handled silently.
  * @param buffer - buffer that contains message with extractable pid of sender
  * @param buffer_size - actual length of data in buffer
  */
@@ -121,17 +121,17 @@ void async_signal_halt(const char * buffer, ssize_t buffer_size) {
 
     switch (fork()) {
         case -1:
-            syserr("VALIDATOR: Error in fork");
+            err = true;
         case 0:
             validator_mq_extract_pidstr(buffer, pid_msg_part);
             tester_mq_get_name_from_pidstr(pid_msg_part, tester_mq_name);
 
             tester_mq = tester_mq_start(false, tester_mq_name, &err);
-            HANDLE_ERR(exit_with_errno);
+            HANDLE_ERR_EXIT_ERRNO_WITH_MSG("VALIDATOR: Failed to create tester_mq");
             tester_mq_send_halt(tester_mq, &err);
-            HANDLE_ERR(exit_with_errno);
+            HANDLE_ERR_EXIT_ERRNO_WITH_MSG("VALIDATOR: Failed to send halt flag to tester_mq");
             tester_mq_finish(false, tester_mq, tester_mq_name, &err);
-            HANDLE_ERR(exit_with_errno);
+            HANDLE_ERR_EXIT_ERRNO_WITH_MSG("VALIDATOR: Failed to close tester_mq");
 
             // TODO: update local logs
             exit(0);

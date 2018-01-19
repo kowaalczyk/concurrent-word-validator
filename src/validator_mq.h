@@ -36,8 +36,9 @@ extern size_t validator_mq_get_buffsize(mqd_t validator_mq, bool *err);
  */
 extern void validator_mq_send_validation_start_request(mqd_t validator_mq, const char *word, bool *err);
 
-// TODO: Send halt
-// TODO: Send validation result
+extern void validator_mq_send_validation_finish_request(mqd_t validator_mq, const char *word, char result_flag, bool *err);
+
+extern void validator_mq_send_halt_request(mqd_t validator_mq, bool *err);
 
 /**
  * Waits until a message is received via provided mq,

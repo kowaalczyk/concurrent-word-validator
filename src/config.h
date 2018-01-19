@@ -32,6 +32,8 @@
 #define PTR_FAIL_IF(x) do {if(x) {if(err != NULL) *err = true; return NULL;}} while(false)
 #define HANDLE_ERR(err_handler) do {if(err) {(err_handler)();}} while(false)
 #define HANDLE_ERR_EXIT_WITH_MSG(message) do {if(err) {fprintf(stderr, "%s - error number: %d (%s)\n", message, errno, strerror(errno)); exit(-1);}} while(false)
+#define HANDLE_ERR_EXIT_ERRNO_WITH_MSG(message) do {if(err) {fprintf(stderr, "%s - error number: %d (%s)\n", message, errno, strerror(errno)); exit(-errno);}} while(false)
+#define HANDLE_ERR_DECREMENT_BREAK(to_decrement) do {if(err) (to_decrement)--; break;} while(false)
 #define HANDLE_ERR_DECREMENT_CONTINUE(to_decrement) do {if(err) (to_decrement)--; continue;} while(false)
 
 /**

@@ -80,7 +80,6 @@ int main() {
 
     // load words and send them asynchronously
     while(fgets(input_buffer, sizeof(input_buffer), stdin)) {
-        // TODO: Make sure to process empty strings correctly
         size_t input_word_len = strlen(input_buffer);
         memcpy(request_buffer, input_buffer, input_word_len);
         async_send_request_to_validator(validator_mq, request_buffer);

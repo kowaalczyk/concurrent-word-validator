@@ -47,8 +47,18 @@ mqd_t validator_mq_start(bool server, bool *err) {
 }
 
 void validator_mq_send_validation_start_request(mqd_t validator_mq, const char *word, bool *err) {
+
+
     // TODO + re-check extracts
 //    mq_send(validator_mq, word, strlen(word), 1);
+}
+
+void validator_mq_send_validation_finish_request(mqd_t validator_mq, const char *word, char result_flag, bool *err) {
+
+}
+
+void validator_mq_send_halt_request(mqd_t validator_mq, bool *err) {
+
 }
 
 ssize_t validator_mq_receive(mqd_t validator_mq, char *buffer, size_t buffer_size, bool *err) {
