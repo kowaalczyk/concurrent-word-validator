@@ -14,18 +14,15 @@
 static const char TESTER_MQ_NAME_PREFIX[] = "/pw_validator_tester_mq_"; // make sure TESTER_MQ_NAME_PREFIX_LEN is set correctly
 
 
+void pidstr(pid_t pid, char *target) {
+    sprintf(target, "%0*d", (int)PID_STR_LEN, pid);
+}
+
 void tester_mq_get_name_from_pid(pid_t pid, char *target) {
     assert(target != NULL);
 
     memcpy(target, TESTER_MQ_NAME_PREFIX, TESTER_MQ_NAME_PREFIX_LEN);
     pidstr(pid, target + TESTER_MQ_NAME_PREFIX_LEN);
-}
-
-void tester_mq_get_name_from_pidstr(const char *pid_str, char *target) {
-    assert(target != NULL);
-
-    memcpy(target, TESTER_MQ_NAME_PREFIX, TESTER_MQ_NAME_PREFIX_LEN);
-    memcpy(target+TESTER_MQ_NAME_PREFIX_LEN, pid_str, PID_STR_LEN);
 }
 
 mqd_t tester_mq_start(bool server, const char *tester_mq_name, bool *err) {

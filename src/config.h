@@ -13,8 +13,6 @@
 
 #define WORD_LEN_MAX 1000
 
-// 1 byte holds 3 digits at maximum, so 3x sizeof in bytes is enough to hold pid_t as string
-#define PID_STR_LEN (sizeof(pid_t)*3)
 #define NORMAL_MQ_PRIORITY 1
 
 /**
@@ -29,11 +27,6 @@
 #define HANDLE_ERR_DECREMENT_BREAK(to_decrement) do {if(err) (to_decrement)--; break;} while(false)
 #define HANDLE_ERR_DECREMENT_CONTINUE(to_decrement) do {if(err) (to_decrement)--; continue;} while(false)
 
-/**
- * Converts provided pid to formatted C-string and writes it to the target
- * @param pid
- * @param target - pointer to string that will store the data
- */
-void pidstr(pid_t pid, char * target);
+// TODO: Add comm summary here
 
 #endif //PW_VALIDATOR_CONFIG_H
