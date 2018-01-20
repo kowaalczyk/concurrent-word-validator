@@ -77,6 +77,7 @@ void async_forward_response(const tester_t *tester, validator_mq_msg request_msg
     bool completed = (halt_flag_raised && tester->word_bal == 0);
     switch (fork()) {
         case -1:
+            // TODO: Error handling
             break;
         case 0:
             // TODO: Close validator mq

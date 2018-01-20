@@ -12,15 +12,16 @@
 
 pid_t main_pid;
 size_t await_forks = 0;
+size_t await_responses = 0;
 
 // TODO: Signal handlers
 
 /**
  * Error handler.
- * Kills all processes and exits the current process.
+ * Kills all child processes and exits the current process.
  * Does not affect the validator - this would make one tester failure affect other testers.
  */
-void kill_all_exit() {
+void kill_children_exit() {
     // TODO
 }
 
@@ -45,13 +46,18 @@ void exit_with_errno() {
  */
 void async_send_request_to_validator(mqd_t validator_mq, const char * word) {
     bool err = false;
+    bool start = (word[0]=='!');
+    bool halt = !start;
+    size_t word_len;
+
     switch (fork()) {
         case -1:
-//            syserr("TESTER: Error in fork");
+            // TODO: Error handling
             break;
         case 0:
             // TODO: Set handler to exit(1) if parent interrupts
-            validator_mq_send_validation_start_request(validator_mq, word, &err);
+            // TODO: Close opened MQs
+            validator_mq_send(validator_mq, start, halt, false, false, main_pid, word, &err);
             HANDLE_ERR(exit_with_errno);
             exit(0);
         default:
@@ -66,6 +72,7 @@ struct comm_summary{
 };
 
 int main() {
+    // initial setup
     bool err = false;
     main_pid = getpid();
     struct comm_summary comm_summary = {0, 0, 0};
@@ -79,29 +86,24 @@ int main() {
     mqd_t validator_mq = validator_mq_start(false, &err); // assuming there is only one validator
     HANDLE_ERR(exit_with_errno);
 
-    // setup buffer
-    char input_buffer[WORD_LEN_MAX];
-    size_t request_buffer_len = validator_mq_get_buffsize(validator_mq, &err);
-    HANDLE_ERR(exit_with_errno);
-    char request_buffer[request_buffer_len];
 
     // load words and send them asynchronously
-    while(fgets(input_buffer, sizeof(input_buffer), stdin)) {
-        size_t input_word_len = strlen(input_buffer);
-        memcpy(request_buffer, input_buffer, input_word_len);
-        async_send_request_to_validator(validator_mq, request_buffer);
+    char buffer[WORD_LEN_MAX+2]; // + '\n' and EOF
+    while(fgets(buffer, sizeof(buffer), stdin)) {
+        async_send_request_to_validator(validator_mq, buffer);
     }
-    validator_mq_finish(validator_mq, false, &err);
+    validator_mq_finish(false, validator_mq, &err);
     HANDLE_ERR(exit_with_errno);
 
     // process validator responses synchronously
     tester_mq_msg response_msg;
-    while(true) {
+    while(await_responses) {
         tester_mq_receive(tester_mq, &response_msg, &err);
-        HANDLE_ERR(kill_all_exit);
+        HANDLE_ERR(kill_children_exit);
 
-        comm_summary.rcd++;
+        comm_summary.rcd++; // TODO: Function
         if(!response_msg.ignored) {
+            await_responses--;
             if(response_msg.accepted) {
                 comm_summary.acc++;
                 printf("%s A\n", response_msg.word);
@@ -115,14 +117,14 @@ int main() {
     }
     // clean up
     tester_mq_finish(true, tester_mq, tester_mq_name, &err);
-    HANDLE_ERR(kill_all_exit);
+    HANDLE_ERR(kill_children_exit);
 
     while(await_forks) {
         pid_t tmp_pid;
         int wait_ret;
         tmp_pid = wait(&wait_ret);
         if(tmp_pid == -1) {
-            kill_all_exit();
+            kill_children_exit();
         }
         if(wait_ret == 0) {
             comm_summary.snt++;
