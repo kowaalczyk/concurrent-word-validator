@@ -77,7 +77,7 @@ void tester_mq_send(mqd_t tester_mq, const char *word, bool completed, bool igno
     assert(err != NULL);
 
     int tmp_err = 0;
-    tester_mq_msg msg = {completed, ignored, accepted, NULL};
+    tester_mq_msg msg = {completed, ignored, accepted, ""};
     if(word != NULL) {
         memcpy(msg.word, word, strlen(word));
     }
