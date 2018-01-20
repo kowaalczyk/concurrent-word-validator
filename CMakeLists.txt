@@ -2,9 +2,9 @@ cmake_minimum_required(VERSION 3.8)
 project(pw_validator)
 
 set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_FLAGS "")
+set(CMAKE_C_FLAGS "-Wall -Werror")
 
-set(CMAKE_C_FLAGS_DEBUG "-g -Wall -Werror -DPW_ENABLE_LOGGING")
+set(CMAKE_C_FLAGS_DEBUG "-g -DPW_ENABLE_LOGGING")
 set(CMAKE_C_FLAGS_RELEASE  "-DNDEBUG")
 
 
