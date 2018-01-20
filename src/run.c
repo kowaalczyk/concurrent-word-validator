@@ -6,6 +6,7 @@
 #include <memory.h>
 #include <assert.h>
 #include "automaton.h"
+#include "config.h"
 
 
 /// checks if given state is universal in a given automata
@@ -68,7 +69,7 @@ bool accept_rec(const automaton *a, const char *word, const char *state_list) {
         // need to accept_rec any of following states
         int i;
         for(i=0; i<following_states_length; i++) {
-            char state_list_extended[STR_LEN_MAX]; // states list for given word is equal its length
+            char state_list_extended[WORD_LEN_MAX]; // states list for given word is equal its length
             strcpy(state_list_extended, state_list);
             size_t fs_len = strlen(state_list_extended);
             // append one of possible following states to current state_list
@@ -87,7 +88,7 @@ bool accept_rec(const automaton *a, const char *word, const char *state_list) {
     assert(is_universal(a, state_list[depth]));
     int i;
     for(i=0; i<following_states_length; i++) {
-        char state_list_extended[STR_LEN_MAX]; // states list for given word is equal its length
+        char state_list_extended[WORD_LEN_MAX]; // states list for given word is equal its length
         strcpy(state_list_extended, state_list);
         size_t fs_len = strlen(state_list_extended);
         // append one of possible following states to current state_list
@@ -106,7 +107,7 @@ bool accept_rec(const automaton *a, const char *word, const char *state_list) {
 
 /// checks if given automaton accepts given word
 bool accept(const automaton * a, const char * word) {
-    char state_list[STR_LEN_MAX]; // states list for given word is equal its length
+    char state_list[WORD_LEN_MAX]; // states list for given word is equal its length
     state_list[0] = a->starting_state;
     state_list[1] = '\0';
     return accept_rec(a, word, state_list);
