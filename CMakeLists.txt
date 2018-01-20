@@ -64,5 +64,10 @@ target_link_libraries(mq_sandbox rt config err)
 add_executable(pipe_cpy_test_child test/pipe_cpy_test_child.c)
 add_executable(pipe_cpy_test test/pipe_cpy_test.c)
 
+# pipe large struct test 2: compile child first, run parent and diff their output files (shold be the same)
+add_executable(pipe_cpy_test_child_2 test/pipe_cpy_test_child_2.c)
+target_link_libraries(pipe_cpy_test_child_2 err)
+add_executable(pipe_cpy_test_2 test/pipe_cpy_test_2.c)
+target_link_libraries(pipe_cpy_test_2 err)
 
 install(TARGETS DESTINATION .)

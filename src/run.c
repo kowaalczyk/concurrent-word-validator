@@ -5,8 +5,11 @@
 #include <stdbool.h>
 #include <memory.h>
 #include <assert.h>
-#include "automaton.h"
+#include <stdlib.h>
+#include <errno.h>
 #include "config.h"
+#include "validator_mq.h"
+#include "automaton.h"
 
 
 /// checks if given state is universal in a given automata
@@ -115,14 +118,17 @@ bool accept(const automaton * a, const char * word) {
 
 
 int main(int argc, char * argv[]) {
-    assert(argc == 3);
-    char * request_mq_name = argv[1];
-    char * validation_start_request_content = argv[2];
+//    assert(argc == 3);
+//    char * request_mq_name = argv[1];
+//    char * validation_start_request_content = argv[2];
 
-    // TODO: Create an answer queue so that validator is not blocked (can it be blocked here anyway?)
+    bool err = false;
 
-    // TODO: Receive automaton via MQ
-    // TODO: Receive word via MQ
+    validator_mq_start(false, &err);
+    HANDLE_ERR_EXIT_ERRNO_WITH_MSG("TESTER: Failed to open validator mq");
+
+    // TODO: Receive automaton via pipe
+    // TODO: Receive word via pipe
     // TODO: Close that MQ immediately
 
     // TODO: Process word

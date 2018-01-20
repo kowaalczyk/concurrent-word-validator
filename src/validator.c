@@ -39,12 +39,10 @@ void kill_all_exit() {
 }
 
 // TODO: Complete fix
-void async_start_validation(const validator_mq_msg request_msg) {
+void async_create_run(const validator_mq_msg request_msg) {
     assert(!halt_flag_raised);
 
     bool err = false;
-    char word[WORD_LEN_MAX];
-
     switch (fork()) {
         case -1:
             err = true;
@@ -53,6 +51,7 @@ void async_start_validation(const validator_mq_msg request_msg) {
         case 0:
             validator_mq_finish(false, validator_mq, &err);
             HANDLE_ERR(kill_all_exit);
+
             // child creates run, sends automaton via mq, closes it and exits
 //            get_request_word(buffer, buffer_size, word);
             // TODO: Create MQ for sending automaton and word to run
@@ -66,6 +65,12 @@ void async_start_validation(const validator_mq_msg request_msg) {
             await_forks++;
             await_runs++;
     }
+}
+
+void async_pipe_data(const validator_mq_msg request_msg) {
+    assert(!halt_flag_raised);
+
+    bool err = false;
 }
 
 // TODO: Send complete to tester iff halt flag raised and tester.word_bal is 0
@@ -181,7 +186,7 @@ int main() {
                 tester_list_emplace(tester_data, validator_msg.tester_pid, 1, 0, 1, &err);
                 HANDLE_ERR(raise_halt_flag);
             }
-            async_start_validation(validator_msg);
+            async_create_run(validator_msg);
 
         } else {
             // TODO: Consider handling this
