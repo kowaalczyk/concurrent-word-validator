@@ -34,7 +34,7 @@ void raise_halt_flag() {
  * Kills all known processes and exits the current process.
  */
 void kill_all_exit() {
-    // TODO
+    exit(-1); // TODO
 }
 
 /**
@@ -42,7 +42,7 @@ void kill_all_exit() {
  * Launches run process ready to read from provided pipe.
  * Assumes both pipe descriptors are opened.
  * Does not modify pipe in current process.
- * @param pipe_dsc 
+ * @param pipe_dsc
  */
 void async_create_run(int *pipe_dsc) {
     assert(!halt_flag_raised);
@@ -88,9 +88,9 @@ void async_create_run(int *pipe_dsc) {
  * Sends provided automaton and prepared message to run process via specified pipe.
  * Assumes pipe descriptor 0 is closed, and pipe descriptor 1 is opened.
  * Does not modify pipe in current process.
- * @param pipe_dsc 
- * @param a 
- * @param prepared_msg 
+ * @param pipe_dsc
+ * @param a
+ * @param prepared_msg
  */
 void async_pipe_data(int *pipe_dsc, const automaton *a, const validator_mq_msg *prepared_msg) {
     assert(!halt_flag_raised);
@@ -104,7 +104,7 @@ void async_pipe_data(int *pipe_dsc, const automaton *a, const validator_mq_msg *
         case 0:
             validator_mq_finish(false, validator_mq, &err);
             HANDLE_ERR(kill_all_exit);
-            
+
             // send automaton
             tmp_err = write(pipe_dsc[1], a, sizeof(automaton));
             if(tmp_err != sizeof(automaton)) {
@@ -192,9 +192,11 @@ int main() {
     comm_sumary_t comm_summary = {0, 0, 0};
     tester_list_t * tester_data = tester_list_create(&err);
     HANDLE_ERR_EXIT_WITH_MSG("VALIDATOR: Could not create tester list");
+    automaton a;
+    load_automaton(&a, &err);
+    HANDLE_ERR_EXIT_ERRNO_WITH_MSG("VALIDATOR: Failed to load automaton");
 
     // setup queues
-    const automaton * a = load_automaton();
     validator_mq = validator_mq_start(true, &err);
     HANDLE_ERR_EXIT_WITH_MSG("VALIDATOR: Could not start validator mq");
 
@@ -292,7 +294,6 @@ int main() {
     // clean up
     validator_mq_finish(true, validator_mq, &err);
     HANDLE_ERR(kill_all_exit);
-    free((void *) a);
     while(await_forks) {
         pid_t tmp_pid;
         int wait_ret;

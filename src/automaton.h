@@ -6,6 +6,7 @@
 #define PW_VALIDATOR_AUTO_H
 
 #include <stdio.h>
+#include <stdbool.h>
 
 #define ALPHABET_SIZE ('z'-'a')
 #define STATES_SIZE 100
@@ -29,16 +30,10 @@ typedef struct automaton {
 } automaton;
 
 /**
- * Creates automaton based on data from stdin.
- * Automaton cannot be modified later, and can be freed only via delete_automaton.
- * @return pointer to created automaton
+ * Loads automaton from stdin to provided pointer, no dynamic memory allocation.
+ * @param a 
+ * @param err 
  */
-extern const automaton * load_automaton(); // TODO: Check error handling
-
-/**
- * Frees memory allocated for automaton, disregards const specifier.
- * @param to_delete
- */
-extern void delete_automaton(const automaton * to_delete); // TODO: Make sure this will compile
+extern void load_automaton(automaton *ptr, bool *err);
 
 #endif //PW_VALIDATOR_AUTO_H
