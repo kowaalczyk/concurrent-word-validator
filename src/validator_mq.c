@@ -52,7 +52,7 @@ void validator_mq_send(mqd_t validator_mq, bool start, bool halt, bool finished,
     assert(err != NULL);
 
     int tmp_err = 0;
-    validator_mq_msg msg = {start, halt, finished, accepted, tester_pid, NULL};
+    validator_mq_msg msg = {start, halt, finished, accepted, tester_pid, ""};
     if(word != NULL) {
         memcpy(msg.word, word, strlen(word));
     }
