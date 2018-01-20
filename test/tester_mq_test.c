@@ -12,11 +12,10 @@
 #include <memory.h>
 #include "../src/tester_mq.h"
 
+
 // TEST PARAMS:
 const bool enable_log = true;
 const int send_delay_in_seconds = 3;
-
-
 
 
 #pragma clang diagnostic push
@@ -119,6 +118,8 @@ int main() {
                 assert(msg.accepted);
                 break;
             default:
+                log("BAD MESSAGE");
+                exit(-1);
                 break;
         }
         log("RECEIVER: received message:");
@@ -132,5 +133,5 @@ int main() {
     log("RECEIVER: finished");
 
     wait(NULL); // wait for sender
-    return errno;
+    return -errno;
 }
