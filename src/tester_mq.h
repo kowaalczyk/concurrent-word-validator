@@ -47,8 +47,6 @@ extern void tester_mq_get_name_from_pidstr(const char *pid_str, char *target);
  */
 extern mqd_t tester_mq_start(bool server, const char *tester_mq_name, bool *err);
 
-extern void tester_mq_send_completed(mqd_t tester_mq, bool *err); // TODO: Remove
-
 /**
  * Blocking.
  * Sends message with provided data to specified tester_mq
@@ -70,10 +68,6 @@ extern void tester_mq_send(mqd_t tester_mq, const char *word, bool completed, bo
  * @return
  */
 extern ssize_t tester_mq_receive(mqd_t tester_mq, tester_mq_msg *msg, bool *err);
-
-// TODO: Remove both:
-extern bool tester_mq_received_halt(const char * buffer, ssize_t buffer_size);
-extern bool tester_mq_received_validation_result(const char * buffer, ssize_t buffer_size);
 
 /**
  * Closes provided tester mq, server version needs to be executed after all other clients are finished
