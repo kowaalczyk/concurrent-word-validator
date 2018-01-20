@@ -3,26 +3,20 @@
 //
 
 #include "validator_mq.h"
-#include "err.h"
 #include <stdlib.h>
 #include <assert.h>
-#include <string.h>
 #include <stdio.h>
 
-// TODO: Figure a way to kill everything in case of error
 
 #define VALIDATOR_MQ_PERMISSIONS 0666
 
 static const char VALIDATOR_MQ_NAME[] = "/pw_validator_validator_mq_single";
 
-static const char VALIDATOR_MQ_FLAG_HALT = HALT_FLAG;
-static const char VALIDATOR_MQ_FLAG_START = 'S';
-static const char VALIDATOR_MQ_FLAG_FINISH_PASSED = VALIDATION_PASSED_FLAG;
-static const char VALIDATOR_MQ_FLAG_FINISH_FAILED = VALIDATION_FAILED_FLAG;
-
 
 mqd_t validator_mq_start(bool server, bool *err) {
-    int tmp_err;
+    assert(err != NULL);
+
+    int tmp_err = 0;
     mqd_t queue;
 
     if(server) {
@@ -30,14 +24,10 @@ mqd_t validator_mq_start(bool server, bool *err) {
         INT_FAIL_IF(queue == -1);
 
         // resize queue message size if it is too small
-        struct mq_attr tester_mq_attrs;
-        tmp_err = mq_getattr(queue, &tester_mq_attrs);
+        struct mq_attr validator_mq_attrs;
+        tmp_err = mq_getattr(queue, &validator_mq_attrs);
         INT_FAIL_IF(tmp_err == -1);
-        if(tester_mq_attrs.mq_msgsize < VALIDATOR_MQ_BUFFSIZE) {
-            tester_mq_attrs.mq_msgsize = VALIDATOR_MQ_BUFFSIZE;
-            tmp_err = mq_setattr(queue, &tester_mq_attrs, NULL); // TODO: This might be impossible, instead of resizing set correct errno
-            INT_FAIL_IF(tmp_err == -1);
-        }
+        INT_FAIL_IF(validator_mq_attrs.mq_msgsize < sizeof(validator_mq_msg));
     } else {
         queue = mq_open(VALIDATOR_MQ_NAME, O_WRONLY);
         INT_FAIL_IF(queue == -1);
@@ -46,67 +36,53 @@ mqd_t validator_mq_start(bool server, bool *err) {
     return queue;
 }
 
-void validator_mq_send_validation_start_request(mqd_t validator_mq, const char *word, bool *err) {
-    // TODO + re-check extracts
-//    mq_send(validator_mq, word, strlen(word), 1);
+size_t validator_mq_get_buffsize(mqd_t queue, bool *err) {
+    assert(err != NULL);
+
+    int tmp_err = 0;
+    struct mq_attr tmp;
+
+    tmp_err = mq_getattr(queue, &tmp);
+    INT_FAIL_IF(tmp_err == -1);
+    return (size_t) tmp.mq_msgsize;
 }
 
-ssize_t validator_mq_receive(mqd_t validator_mq, char *buffer, size_t buffer_size, bool *err) {
-    ssize_t request_ret = mq_receive(validator_mq, buffer, buffer_size, NULL);
+void validator_mq_send(mqd_t validator_mq, bool start, bool halt, bool finished, bool accepted, pid_t tester_pid,
+                       const char *word, bool *err) {
+    assert(err != NULL);
+
+    int tmp_err = 0;
+    validator_mq_msg msg = {start, halt, finished, accepted, tester_pid, NULL};
+    if(word != NULL) {
+        memcpy(msg.word, word, strlen(word));
+    }
+
+    tmp_err = mq_send(validator_mq, (const char *)&msg, sizeof(validator_mq_msg), NORMAL_MQ_PRIORITY);
+    VOID_FAIL_IF(tmp_err == -1);
+}
+
+ssize_t validator_mq_receive(mqd_t validator_mq, validator_mq_msg *msg, bool *err) {
+    assert(msg != NULL && err != NULL);
+
+    size_t buffsize = validator_mq_get_buffsize(validator_mq, err);
+    INT_FAIL_IF(*err);
+
+    char buff[buffsize];
+    ssize_t request_ret = mq_receive(validator_mq, buff, buffsize, NULL);
     INT_FAIL_IF(request_ret == 0);
+
+    memcpy(msg, buff, sizeof(validator_mq_msg));
     return request_ret;
 }
 
-bool validator_mq_requested_halt(const char *buffer, ssize_t buffer_length) {
-    assert(buffer_length>0);
-
-    return buffer[0] == VALIDATOR_MQ_FLAG_HALT;
-}
-
-bool validator_mq_requested_validation_finish(const char *buffer, ssize_t buffer_length) {
-    assert(buffer_length>0);
-
-    return buffer[0] == VALIDATOR_MQ_FLAG_FINISH_PASSED || buffer[0] == VALIDATOR_MQ_FLAG_FINISH_FAILED;
-}
-
-bool validator_mq_requested_validation_start(const char *buffer, ssize_t buffer_length) {
-    assert(buffer_length>0);
-
-    return buffer[0] == VALIDATOR_MQ_FLAG_START;
-}
-
-void validator_mq_finish(mqd_t validator_mq, bool server, bool *err) {
-    int tmp_err;
+void validator_mq_finish(bool unlink, mqd_t validator_mq, bool *err) {
+    int tmp_err = 0;
 
     tmp_err = mq_close(validator_mq);
     VOID_FAIL_IF(tmp_err == -1);
 
-    if(server) {
+    if(unlink) {
         tmp_err = mq_unlink(VALIDATOR_MQ_NAME);
         VOID_FAIL_IF(tmp_err == -1);
     }
-}
-
-void validator_mq_extract_pidstr(const char *buffer, char *target) {
-    memcpy(target, buffer+2, PID_STR_LEN);
-}
-
-void validator_mq_extract_word(const char *buffer, char *target) {
-    memcpy(target, buffer+3+PID_STR_LEN, WORD_LEN_MAX);
-}
-
-void validator_mq_extract_flag(const char *buffer, char *target) {
-    memcpy(target, buffer, 1);
-}
-
-bool validator_mq_validation_passed(const char *buffer) {
-    return buffer[0] == VALIDATOR_MQ_FLAG_FINISH_PASSED;
-}
-
-pid_t validator_mq_extract_pid(const char *buffer) {
-    char tmp[PID_STR_LEN];
-    pid_t ans;
-    validator_mq_extract_pidstr(buffer, tmp);
-    sscanf(tmp, "%d", &ans);
-    return ans;
 }
