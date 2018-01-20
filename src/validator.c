@@ -153,6 +153,7 @@ int main() {
         HANDLE_ERR(raise_halt_flag);
 
         // process request
+        comm_summary.rcd++;
         if(validator_msg.halt) {
             tester_t * tester = tester_list_find(tester_data, validator_msg.tester_pid);
             if(tester) {
@@ -170,6 +171,7 @@ int main() {
             assert(tester != NULL);
             tester->word_bal--;
             if(validator_msg.accepted) {
+                comm_summary.acc++;
                 tester->acc++;
             }
             async_forward_response(tester, validator_msg);
@@ -196,12 +198,14 @@ int main() {
         HANDLE_ERR_DECREMENT_CONTINUE(await_runs);
 
         // process request
+        comm_summary.rcd++;
         if(validator_msg.finished) {
             // Update local logs and forward response TODO: Function
             tester_t * tester = tester_list_find(tester_data, validator_msg.tester_pid);
             assert(tester != NULL);
+            tester->word_bal--;
             if(validator_msg.accepted) {
-                tester->word_bal--;
+                comm_summary.acc++;
                 tester->acc++;
             }
             async_forward_response(tester, validator_msg);
@@ -224,11 +228,18 @@ int main() {
     HANDLE_ERR(kill_all_exit);
     free((void *) a);
     while(await_forks) {
-        // TODO: Handle errors from forks
-        wait(NULL);
+        pid_t tmp_pid;
+        int wait_ret;
+        tmp_pid = wait(&wait_ret);
+        if(tmp_pid == -1) {
+            kill_all_exit();
+        }
+        if(wait_ret == 0) {
+            comm_summary.snt++;
+        }
         await_forks--;
     }
-    // TODO: Complete validator logs
+    printf("Snt: %zu\nRcd: %zu\nAcc: %zu\n", comm_summary.snt, comm_summary.rcd, comm_summary.acc);
     tester_list_print_log(tester_data);
     tester_list_destroy(tester_data);
     return 0;
