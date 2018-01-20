@@ -65,8 +65,6 @@ void tester_list_print_log(const tester_list_t *list) {
 }
 
 void tester_list_destroy_rec(tester_list_t *list) {
-    TESTER_LIST_ASSERT_OK;
-
     if(list->next != NULL) {
         tester_list_destroy_rec(list->next);
     }
