@@ -5,14 +5,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-
 #include <fcntl.h>
-
 #include "tester_mq.h"
+
 
 #define TESTER_MQ_PERMISSIONS 0666
 
 static const char TESTER_MQ_NAME_PREFIX[] = "/pw_validator_tester_mq_"; // make sure TESTER_MQ_NAME_PREFIX_LEN is set correctly
+
 
 void tester_mq_get_name_from_pid(pid_t pid, char *target) {
     assert(target != NULL);
@@ -31,7 +31,7 @@ void tester_mq_get_name_from_pidstr(const char *pid_str, char *target) {
 mqd_t tester_mq_start(bool server, const char *tester_mq_name, bool *err) {
     assert(tester_mq_name != NULL && err != NULL);
 
-    int tmp_err;
+    int tmp_err = 0;
     mqd_t queue;
 
     if(server) {
@@ -54,7 +54,7 @@ mqd_t tester_mq_start(bool server, const char *tester_mq_name, bool *err) {
 size_t tester_mq_get_buffsize(mqd_t queue, bool *err) {
     assert(err != NULL);
 
-    int tmp_err;
+    int tmp_err = 0;
     struct mq_attr tmp;
 
     tmp_err = mq_getattr(queue, &tmp);
@@ -65,7 +65,7 @@ size_t tester_mq_get_buffsize(mqd_t queue, bool *err) {
 void tester_mq_finish(bool server, mqd_t tester_mq, const char *tester_mq_name, bool *err) {
     assert(tester_mq_name != NULL && err != NULL);
 
-    int tmp_err;
+    int tmp_err = 0;
 
     tmp_err = mq_close(tester_mq);
     VOID_FAIL_IF(tmp_err == -1);
@@ -76,16 +76,16 @@ void tester_mq_finish(bool server, mqd_t tester_mq, const char *tester_mq_name, 
     }
 }
 
-extern void tester_mq_send(mqd_t tester_mq, const char *word, bool completed, bool ignored, bool accepted, bool *err) {
+void tester_mq_send(mqd_t tester_mq, const char *word, bool completed, bool ignored, bool accepted, bool *err) {
     assert(err != NULL);
 
-    int tmp_err;
+    int tmp_err = 0;
     tester_mq_msg msg = {completed, ignored, accepted, NULL};
     if(word != NULL) {
         memcpy(msg.word, word, strlen(word));
     }
 
-    tmp_err = mq_send(tester_mq, (const char *)&msg, sizeof(msg), NORMAL_FLAG_PRIORITY);
+    tmp_err = mq_send(tester_mq, (const char *)&msg, sizeof(tester_mq_msg), NORMAL_FLAG_PRIORITY);
     VOID_FAIL_IF(tmp_err == -1);
 }
 
