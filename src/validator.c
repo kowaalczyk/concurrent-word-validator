@@ -128,11 +128,6 @@ void async_reply_ignore(const tester_t *tester, validator_mq_msg request_msg) {
     }
 }
 
-struct comm_summary{
-    size_t snt;
-    size_t rcd;
-    size_t acc;
-};
 
 int main() {
     // initial setup
