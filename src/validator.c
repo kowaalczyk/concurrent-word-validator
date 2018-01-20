@@ -137,7 +137,7 @@ struct comm_summary{
 int main() {
     // initial setup
     bool err = false;
-    struct comm_summary comm_summary = {0, 0, 0};
+    comm_sumary_t comm_summary = {0, 0, 0};
     tester_list_t * tester_data = tester_list_create(&err);
     HANDLE_ERR_EXIT_WITH_MSG("VALIDATOR: Could not create tester list");
 
@@ -239,7 +239,7 @@ int main() {
         }
         await_forks--;
     }
-    printf("Snt: %zu\nRcd: %zu\nAcc: %zu\n", comm_summary.snt, comm_summary.rcd, comm_summary.acc);
+    print_comm_summary(&comm_summary);
     tester_list_print_log(tester_data);
     tester_list_destroy(tester_data);
     return 0;

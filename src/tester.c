@@ -66,17 +66,12 @@ void async_send_request_to_validator(mqd_t validator_mq, const char * word) {
     }
 }
 
-struct comm_summary{
-    size_t snt;
-    size_t rcd;
-    size_t acc;
-};
 
 int main() {
     // initial setup
     bool err = false;
     main_pid = getpid();
-    struct comm_summary comm_summary = {0, 0, 0};
+    comm_sumary_t comm_summary = {0, 0, 0};
 
     // setup queues
     char tester_mq_name[TESTER_MQ_NAME_LEN];
@@ -132,7 +127,7 @@ int main() {
         }
         await_forks--;
     }
-    // print comm summary
-    printf("Snt: %zu\nRcd: %zu\nAcc: %zu\n", comm_summary.snt, comm_summary.rcd, comm_summary.acc);
+
+    print_comm_summary(&comm_summary);
     return 0;
 }

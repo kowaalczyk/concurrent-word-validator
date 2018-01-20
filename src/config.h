@@ -27,6 +27,14 @@
 #define HANDLE_ERR_DECREMENT_BREAK(to_decrement) do {if(err) (to_decrement)--; break;} while(false)
 #define HANDLE_ERR_DECREMENT_CONTINUE(to_decrement) do {if(err) (to_decrement)--; continue;} while(false)
 
-// TODO: Add comm summary here
+typedef struct comm_summary{
+    size_t snt;
+    size_t rcd;
+    size_t acc;
+} comm_sumary_t;
+
+inline void print_comm_summary(const comm_sumary_t *comm_summary) {
+    printf("Snt: %zu\nRcd: %zu\nAcc: %zu\n", comm_summary->snt, comm_summary->rcd, comm_summary->acc);
+}
 
 #endif //PW_VALIDATOR_CONFIG_H
