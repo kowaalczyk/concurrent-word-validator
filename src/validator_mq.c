@@ -76,6 +76,8 @@ ssize_t validator_mq_receive(mqd_t validator_mq, validator_mq_msg *msg, bool *er
 }
 
 void validator_mq_finish(bool unlink, mqd_t validator_mq, bool *err) {
+    assert(err != NULL);
+
     int tmp_err = 0;
 
     tmp_err = mq_close(validator_mq);

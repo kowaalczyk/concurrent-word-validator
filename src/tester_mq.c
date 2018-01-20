@@ -63,7 +63,7 @@ size_t tester_mq_get_buffsize(mqd_t queue, bool *err) {
 }
 
 void tester_mq_finish(bool unlink, mqd_t tester_mq, const char *tester_mq_name, bool *err) {
-    assert(tester_mq_name != NULL && err != NULL);
+    assert(err != NULL);
 
     int tmp_err = 0;
 

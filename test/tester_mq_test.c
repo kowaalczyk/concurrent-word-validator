@@ -10,7 +10,6 @@
 #include <err.h>
 #include <errno.h>
 #include <memory.h>
-#include "../src/err.h"
 #include "../src/tester_mq.h"
 
 // TEST PARAMS:
@@ -49,22 +48,22 @@ void sender(const char * mq_name) {
     HANDLE_ERR(err_sender);
     log("SENDER: created mq");
 
-    log("SENDER: sending HALT...");
-    tester_mq_send_completed(tester_mq, &err);
+    log("SENDER: sending COMPLETED...");
+    tester_mq_send(tester_mq, "completed", true, false, false, &err);
     HANDLE_ERR(err_sender);
-    log("SENDER: sent HALT");
+    log("SENDER: sent COMPLETED");
     sleep(send_delay_in_seconds);
 
-    log("SENDER: sending VALIDATION PASS...");
-    tester_mq_send(tester_mq, "dupa", NULL, NULL, NULL, &err);
+    log("SENDER: sending IGNORED...");
+    tester_mq_send(tester_mq, "ignored", false, true, false, &err);
     HANDLE_ERR(err_sender);
-    log("SENDER: sent VALIDATION PASS");
+    log("SENDER: sent IGNORED");
     sleep(send_delay_in_seconds);
 
-    log("SENDER: sending VALIDATION FAIL...");
-    tester_mq_send(tester_mq, "dupa", NULL, NULL, NULL, &err);
+    log("SENDER: sending ACCEPTED...");
+    tester_mq_send(tester_mq, "accepted", false, false, true, &err);
     HANDLE_ERR(err_sender);
-    log("SENDER: sent VALIDATION FAIL");
+    log("SENDER: sent ACCEPTED");
     sleep(send_delay_in_seconds);
 
     log("SENDER: finishing...");
@@ -76,7 +75,8 @@ void sender(const char * mq_name) {
 void async_sender(const char * mq_name) {
     switch(fork()) {
         case -1:
-            syserr("TEST: Error in fork");
+            log("Error in fork");
+            exit(-1);
         case 0:
             // child
             sleep(10);
@@ -87,6 +87,7 @@ void async_sender(const char * mq_name) {
     }
 }
 
+// msg order: completed, ignored, accepted (w/ word)
 int main() {
     bool err = false;
 
@@ -102,28 +103,26 @@ int main() {
     HANDLE_ERR(err_receiver);
     log("RECEIVER: created mq");
 
-    struct mq_attr tmp;
-    mq_getattr(tester_mq, &tmp);
-    printf("%li\n", tester_mq_get_buffsize(tester_mq, &err));
-    HANDLE_ERR(err_receiver);
-
     int i=3;
-    size_t tester_mq_buffsize = tester_mq_get_buffsize(tester_mq, &err);
-    HANDLE_ERR(err_receiver);
-    char tester_mq_buff[tester_mq_buffsize];
-    ssize_t response_ret;
+    tester_mq_msg msg;
     while(--i >= 0) {
-        response_ret = tester_mq_receive(tester_mq, NULL, &err);
+        tester_mq_receive(tester_mq, &msg, &err);
         HANDLE_ERR(err_receiver);
         switch (i){
             case 2:
-                assert(tester_mq_received_halt(tester_mq_buff, response_ret));
+                assert(msg.completed);
+                break;
+            case 1:
+                assert(msg.ignored);
+                break;
+            case 0:
+                assert(msg.accepted);
                 break;
             default:
-                assert(tester_mq_received_validation_result(tester_mq_buff, response_ret));
+                break;
         }
         log("RECEIVER: received message:");
-        log(tester_mq_buff);
+        log(msg.word);
         log("");
     }
 
