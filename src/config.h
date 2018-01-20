@@ -33,8 +33,6 @@ typedef struct comm_summary{
     size_t acc;
 } comm_sumary_t;
 
-inline void print_comm_summary(const comm_sumary_t *comm_summary) {
-    printf("Snt: %zu\nRcd: %zu\nAcc: %zu\n", comm_summary->snt, comm_summary->rcd, comm_summary->acc);
-}
+extern void print_comm_summary(const comm_sumary_t *comm_summary);
 
 #endif //PW_VALIDATOR_CONFIG_H
