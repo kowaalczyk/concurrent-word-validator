@@ -35,6 +35,7 @@ ssize_t async_pipe_send(int *pipe_dsc, const struct test_str *msg1, const char *
         case -1:
             syserr("Parent: error in fork");
         case 0:
+            sleep(5); // waiting just to make sure delay does not cause errors
             tmp_err = write(pipe_dsc[1], msg1, sizeof(struct test_str));
             if(tmp_err != sizeof(struct test_str)) {
                 syserr("Error in pipe write 1");
@@ -93,7 +94,6 @@ int main (int argc, char *argv[])
             syserr("error in fork");
         case 0:
             // child process chaneges descriptors and execs
-            // TODO
             tmp_err = close(0);
             if(tmp_err) {
                 syserr("Error in child: cannot close dsc 0");

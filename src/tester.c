@@ -23,7 +23,7 @@ mqd_t tester_mq;
  * Does not affect the validator - this would make one tester failure affect other testers.
  */
 void kill_children_exit() {
-    // TODO
+    exit(-1); // TODO
 }
 
 /**
@@ -31,8 +31,7 @@ void kill_children_exit() {
  * Exits child program with errno return status code.
  */
 void exit_with_errno() {
-    // TODO: Clean and log
-    exit(errno);
+    exit(errno); // TODO
 }
 
 /**
@@ -47,12 +46,10 @@ void async_send_request_to_validator(mqd_t validator_mq, const char * word) {
     bool err = false;
     bool start = (word[0]=='!');
     bool halt = !start;
-    size_t word_len;
 
     switch (fork()) {
         case -1:
-            // TODO: Error handling
-            break;
+            exit(-1); // TODO: Error handling
         case 0:
             tester_mq_finish(false, tester_mq, NULL, &err);
             HANDLE_ERR(kill_children_exit);
