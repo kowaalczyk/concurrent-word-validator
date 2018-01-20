@@ -44,7 +44,7 @@ void exit_with_errno() {
  */
 void async_send_request_to_validator(mqd_t validator_mq, const char * word) {
     bool err = false;
-    bool start = (word[0]=='!');
+    bool start = (word[0]!='!');
     bool halt = !start;
 
     switch (fork()) {
