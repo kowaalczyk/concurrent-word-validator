@@ -5,24 +5,17 @@
 #ifndef PW_VALIDATOR_CONFIG_H
 #define PW_VALIDATOR_CONFIG_H
 
-#include <mqueue.h> // TODO: Make sure there is no better lib for pid_t
+#include <mqueue.h>
 #include <memory.h>
 #include <stdbool.h>
 
-// TODO: All common #defines go here
 // TODO: Refactor #defines to include project prefix
 
 #define WORD_LEN_MAX 1000
 
 // 1 byte holds 3 digits at maximum, so 3x sizeof in bytes is enough to hold pid_t as string
 #define PID_STR_LEN (sizeof(pid_t)*3)
-
-#define VALIDATION_PASSED_FLAG 'A'
-#define VALIDATION_FAILED_FLAG 'N'
-#define HALT_FLAG '!'
-
-#define HALT_FLAG_PRIORITY 1
-#define NORMAL_FLAG_PRIORITY 1
+#define NORMAL_MQ_PRIORITY 1
 
 /**
  * Macros for error handling used within the project
