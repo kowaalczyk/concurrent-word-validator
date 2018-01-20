@@ -4,198 +4,243 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <assert.h>
 #include <mqueue.h>
 #include <stdbool.h>
 #include <zconf.h>
 #include <wait.h>
+#include <assert.h>
+#include <errno.h>
 #include "automaton.h"
 #include "err.h"
-#include "validator_queues.h"
+#include "validator_mq.h"
+#include "tester_mq.h"
+#include "tester_list.h"
 
-/// loads automaton from standard input, allocates memory should be freed later
-const automaton * load_data() {
-    // iteration variables
-    int i,j;
-    // temporary data variables
-    unsigned int n, a, u, q, f;
-    int c_int;
-    char c_char;
-    int state;
-    int letter;
-    // buffers for loading arrays
-    char * input_buff = NULL;
-    char * input_buff_freeable = NULL;
-    int input_buff_offset = 0;
-    size_t input_buff_len = 0;
 
-    // allocate memory
-    automaton * ans = (automaton*)malloc(sizeof(automaton));
-    if(ans == NULL) {
-        printf("Invalid malloc, cannot load automaton.\n");
-        exit(1);
-    }
+bool halt_flag_raised = false;
+size_t await_runs = 0;
+size_t await_forks = 0;
+mqd_t validator_mq;
 
-    // clean arrays to prevent weird errors
-    ans->acceptable_states[0] = '\0';
-    for(j=0; j<TRANSITIONS_MAX_SIZE; j++) {
-        ans->transitions[j][0] = '\0';
-    }
-
-    // load structure parameters
-    scanf("%d %d %d %d %d\n", &n, &a, &q, &u, &f);
-    ans->alphabet_size = n;
-    ans->states_size = q;
-    ans->universal_states_size = u;
-
-    // load structure arrays
-    for(i=1; i<n; i++) {
-        switch(i) {
-            // 0 has already been loaded
-            case 1:
-                // loading starting state
-                scanf("%d\n", &c_int);
-                assert(0 <= c_int && c_int < ans->states_size);
-                ans->starting_state = (char) (c_int + STR_STORAGE_VAL_OFFSET); // offsetting states in strings, see automaton struct documentation
-                break;
-            case 2:
-                // loading acceptable states
-                for(j=0; j<f; j++) {
-                    scanf("%d\n", &c_int);
-                    assert(0 <= c_int && c_int < ans->states_size);
-                    c_int += STR_STORAGE_VAL_OFFSET; // offsetting states in strings, see automaton struct documentation
-                    ans->acceptable_states[j] = (char) c_int;
-                }
-                ans->acceptable_states[f] = '\0'; // Setting end of string manually
-                break;
-            default:
-                // loading transition function
-                assert(input_buff == NULL);
-                assert(input_buff_freeable == NULL);
-                assert(input_buff_offset == 0);
-                assert(input_buff_len == 0);
-                if(getline(&input_buff, &input_buff_len, stdin) == -1) {
-                    printf("Failed to perform getline() during automaton load: error in stdin or during memory allocation.\n");
-                    exit(1);
-                }
-                input_buff_freeable = input_buff; // input_buff is incremented, this is used to free memory later
-
-                // Scanning state and letter separately in order to keep track of the offset
-                sscanf(input_buff, "%d %n", &state, &input_buff_offset);
-                input_buff += input_buff_offset;
-                sscanf(input_buff, "%c %n", &c_char, &input_buff_offset);
-                input_buff += input_buff_offset;
-                assert(input_buff_offset > 0);
-
-                // letter has to be normalized to fit in 0..ALPHABET_MAX_SIZE
-                letter = (int)(c_char-'a');
-
-                // reading transition function for given <state, letter>
-                size_t transition_pos = state * (ans->alphabet_size) + letter;
-                j = 0;
-                while(sscanf(input_buff, "%d %n", &c_int, &input_buff_offset) == 1) {
-                    c_int += STR_STORAGE_VAL_OFFSET; // offsetting states in strings, see automaton struct documentation
-                    ans->transitions[transition_pos][j] = (char)(c_int);
-                    j++;
-                    input_buff += input_buff_offset;
-                }
-                ans->transitions[transition_pos][j] = '\0';
-
-                // clean buffers
-                free(input_buff_freeable);
-                input_buff = NULL;
-                input_buff_freeable = NULL;
-                input_buff_offset = 0;
-                input_buff_len = 0;
-                break;
-        }
-    }
-    return ans;
+/**
+ * Error handler.
+ * Raises halt flag, without exiting.
+ */
+void raise_halt_flag() {
+    halt_flag_raised = true;
 }
 
-void async_run_init(const char *word) {
-    // TODO: Create MQ for sending automaton and word to run
-    // TODO: Create run
-    // TODO: Send automaton to run
-    // TODO: Send word to run
-    // TODO: Close MQ to run
+/**
+ * Error handler.
+ * Kills all known processes and exits the current process.
+ */
+void kill_all_exit() {
+    // TODO
 }
 
-void async_forward_response(const char * buffer, ssize_t buffer_size) {
-    // TODO: Parse buffer if necessary
-    // TODO: child process get response MQ mqd_t,
-    // TODO: send response,
-    // TODO: update local logs
+// TODO: Complete fix
+void async_start_validation(const validator_mq_msg request_msg) {
+    assert(!halt_flag_raised);
+
+    bool err = false;
+    char word[WORD_LEN_MAX];
+
+    switch (fork()) {
+        case -1:
+            err = true;
+            HANDLE_ERR(raise_halt_flag);
+            break;
+        case 0:
+            validator_mq_finish(false, validator_mq, &err);
+            HANDLE_ERR(kill_all_exit);
+            // child creates run, sends automaton via mq, closes it and exits
+//            get_request_word(buffer, buffer_size, word);
+            // TODO: Create MQ for sending automaton and word to run
+            // TODO: Create run
+            // TODO: Send automaton to run
+            // TODO: Send word to run
+            // TODO: Close MQ to run
+            exit(0);
+        default:
+            // TODO: Create response MQ and open it for writing (this is non-blocking, tester already has an open queue)
+            await_forks++;
+            await_runs++;
+    }
 }
+
+// TODO: Send complete to tester iff halt flag raised and tester.word_bal is 0
+
+void async_forward_response(const tester_t *tester, validator_mq_msg request_msg) {
+    bool err = false;
+    char tester_mq_name[TESTER_MQ_NAME_LEN];
+    mqd_t tester_mq;
+    bool completed = (halt_flag_raised && tester->word_bal == 0);
+    switch (fork()) {
+        case -1:
+            // TODO: Error handling
+            break;
+        case 0:
+            validator_mq_finish(false, validator_mq, &err);
+            HANDLE_ERR(kill_all_exit);
+
+            tester_mq_get_name_from_pid(tester->pid, tester_mq_name);
+            tester_mq = tester_mq_start(false, tester_mq_name, &err);
+            HANDLE_ERR(kill_all_exit);
+
+            tester_mq_send(tester_mq, request_msg.word, completed, false, request_msg.accepted, &err);
+            HANDLE_ERR(kill_all_exit);
+
+            tester_mq_finish(false, tester_mq, NULL, &err);
+            HANDLE_ERR(kill_all_exit);
+            exit(0);
+        default:
+            await_forks++;
+            await_runs--;
+            break;
+    }
+}
+
+void async_reply_ignore(const tester_t *tester, validator_mq_msg request_msg) {
+    bool err = false;
+    char tester_mq_name[TESTER_MQ_NAME_LEN];
+    mqd_t tester_mq;
+    bool completed = (halt_flag_raised && tester->word_bal == 0);
+    switch (fork()) {
+        case -1:
+            break;
+        case 0:
+            validator_mq_finish(false, validator_mq, &err);
+            HANDLE_ERR(kill_all_exit);
+
+            tester_mq_get_name_from_pid(tester->pid, tester_mq_name);
+            tester_mq = tester_mq_start(false, tester_mq_name, &err);
+            HANDLE_ERR(kill_all_exit);
+
+            tester_mq_send(tester_mq, request_msg.word, completed, true, false, &err);
+            HANDLE_ERR(kill_all_exit);
+
+            tester_mq_finish(false, tester_mq, NULL, &err);
+            HANDLE_ERR(kill_all_exit);
+            exit(0);
+        default:
+            await_forks++;
+            break;
+    }
+}
+
+struct comm_summary{
+    size_t snt;
+    size_t rcd;
+    size_t acc;
+};
 
 int main() {
-    const automaton * a = load_data();
+    // initial setup
+    bool err = false;
+    struct comm_summary comm_summary = {0, 0, 0};
+    tester_list_t * tester_data = tester_list_create(&err);
+    HANDLE_ERR_EXIT_WITH_MSG("VALIDATOR: Could not create tester list");
 
-    char * q_name = PW_VQ_REQUEST_NAME_PREFIX;
-    mqd_t incoming_request_q = mq_open(q_name, O_RDONLY | O_CREAT);
-    if(incoming_request_q == -1) {
-        syserr("VALIDATOR: Failed to create requests queue");
-    }
+    // setup queues
+    const automaton * a = load_automaton();
+    validator_mq = validator_mq_start(true, &err);
+    HANDLE_ERR_EXIT_WITH_MSG("VALIDATOR: Could not start validator mq");
 
-    ssize_t request_ret;
-    char buffer[PW_VQ_REQUEST_BUFFSIZE];
-    char word[STR_LEN_MAX];
-    bool halt_flag_raised = false;
-    size_t awaiting_runs = 0;
-    size_t awaiting_forks = 0;
-    while(!halt_flag_raised || awaiting_runs) {
-        // wait for incoming message (from tester or run)
-        request_ret = mq_receive(incoming_request_q, buffer, PW_VQ_REQUEST_BUFFSIZE, NULL);
-        if(request_ret < 0) {
-            syserr("VALIDATOR: Failed to receive request");
-        }
-        // process incoming message
-        if(requested_halt(buffer, request_ret)) {
+    // handle incoming requests
+    validator_mq_msg validator_msg;
+    while(!halt_flag_raised) {
+        validator_mq_receive(validator_mq, &validator_msg, &err);
+        HANDLE_ERR(raise_halt_flag);
+
+        // process request
+        comm_summary.rcd++;
+        if(validator_msg.halt) {
+            tester_t * tester = tester_list_find(tester_data, validator_msg.tester_pid);
+            if(tester) {
+                tester->rcd++;
+            } else {
+                tester_list_emplace(tester_data, validator_msg.tester_pid, 1, 0, 0, &err);
+                HANDLE_ERR(raise_halt_flag);
+            }
             halt_flag_raised = true;
+            // TODO: Notify known testers
 
-        } else if(requested_validation_finish(buffer, request_ret)) {
-            switch (fork()) {
-                case -1:
-                    syserr("VALIDATOR: Error in fork");
-                case 0:
-                    async_forward_response(buffer, request_ret);
-                    break;
-                default:
-                    awaiting_forks++;
-                    awaiting_runs--;
+        } else if(validator_msg.finished) {
+            // Update local logs and forward response TODO: Function
+            tester_t * tester = tester_list_find(tester_data, validator_msg.tester_pid);
+            assert(tester != NULL);
+            tester->word_bal--;
+            if(validator_msg.accepted) {
+                comm_summary.acc++;
+                tester->acc++;
             }
+            async_forward_response(tester, validator_msg);
 
-        } else if(requested_validation_start(buffer, request_ret)) {
-            switch (fork()) {
-                case -1:
-                    syserr("VALIDATOR: Error in fork");
-                case 0:
-                    // child creates run, sends automaton via mq, closes it and exits
-                    get_request_word(buffer, request_ret, word);
-                    async_run_init(word);
-                    exit(0);
-                default:
-                    // parent will wait for all forks after all requests will be processed
-                    // TODO: Create response MQ and open it for writing (this is non-blocking, tester already has an open queue)
-                    awaiting_forks++;
-                    awaiting_runs++;
+        } else if(validator_msg.start) {
+            // Update local logs and start validation TODO: Function
+            tester_t * tester = tester_list_find(tester_data, validator_msg.tester_pid);
+            if(tester) {
+                tester->word_bal++;
+                tester->rcd++;
+            } else {
+                tester_list_emplace(tester_data, validator_msg.tester_pid, 1, 0, 1, &err);
+                HANDLE_ERR(raise_halt_flag);
             }
+            async_start_validation(validator_msg);
+
+        } else {
+            // TODO: Consider handling this
         }
     }
-    // clean queue
-    if (mq_close(incoming_request_q)) syserr("VALIDATOR: Failed to close queue");
-    if (mq_unlink(q_name)) syserr("VALIDATOR: Failed to unlink queue");
+    // after halt flag is raised, wait for runs to complete and halt other testers if necessary
+    while(await_runs) {
+        validator_mq_receive(validator_mq, &validator_msg, &err);
+        HANDLE_ERR_DECREMENT_CONTINUE(await_runs);
 
-    // clean memory
-    free((void *) a);
+        // process request
+        comm_summary.rcd++;
+        if(validator_msg.finished) {
+            // Update local logs and forward response TODO: Function
+            tester_t * tester = tester_list_find(tester_data, validator_msg.tester_pid);
+            assert(tester != NULL);
+            tester->word_bal--;
+            if(validator_msg.accepted) {
+                comm_summary.acc++;
+                tester->acc++;
+            }
+            async_forward_response(tester, validator_msg);
 
-    while(awaiting_forks > 0) {
-        // TODO: Handle errors from forks
-        wait(NULL);
-        awaiting_forks--;
+        } else {
+            // only happens when one tester send halt and other tester completed request before receiving signal
+            tester_t * tester = tester_list_find(tester_data, validator_msg.tester_pid);
+            if(tester) {
+                tester->rcd += 1;
+            } else {
+                tester_list_emplace(tester_data, validator_msg.tester_pid, 1, 0, 0, &err);
+                HANDLE_ERR(raise_halt_flag);
+            }
+            async_reply_ignore(tester, validator_msg);
+        }
     }
 
-    // TODO: Close all response MQs (if necessary)
-
+    // clean up
+    validator_mq_finish(true, validator_mq, &err);
+    HANDLE_ERR(kill_all_exit);
+    free((void *) a);
+    while(await_forks) {
+        pid_t tmp_pid;
+        int wait_ret;
+        tmp_pid = wait(&wait_ret);
+        if(tmp_pid == -1) {
+            kill_all_exit();
+        }
+        if(wait_ret == 0) {
+            comm_summary.snt++;
+        }
+        await_forks--;
+    }
+    printf("Snt: %zu\nRcd: %zu\nAcc: %zu\n", comm_summary.snt, comm_summary.rcd, comm_summary.acc);
+    tester_list_print_log(tester_data);
+    tester_list_destroy(tester_data);
     return 0;
 }
