@@ -77,10 +77,10 @@ extern bool tester_mq_received_validation_result(const char * buffer, ssize_t bu
 
 /**
  * Closes provided tester mq, server version needs to be executed after all other clients are finished
- * @param server - if true, performs server version of the function
+ * @param unlink - if true, unlinks queue name
  * @param tester_mq
  * @param tester_mq_name
  */
-extern void tester_mq_finish(bool server, mqd_t tester_mq, const char *tester_mq_name, bool *err);
+extern void tester_mq_finish(bool unlink, mqd_t tester_mq, const char *tester_mq_name, bool *err);
 
 #endif //PW_VALIDATOR_TESTER_MQ_H

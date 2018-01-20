@@ -58,9 +58,9 @@ extern ssize_t validator_mq_receive(mqd_t validator_mq, validator_mq_msg *msg, b
 /**
  * Closes provided validator mq, server version needs to be executed after all other clients are finished
  * @param validator_mq
- * @param server - if true, performs server version of the function
+ * @param unlink - if true, unlinks queue name
  * @param err
  */
-extern void validator_mq_finish(bool server, mqd_t validator_mq, bool *err);
+extern void validator_mq_finish(bool unlink, mqd_t validator_mq, bool *err);
 
 #endif //PW_VALIDATOR_VALIDATOR_MQ_H

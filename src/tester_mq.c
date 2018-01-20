@@ -62,7 +62,7 @@ size_t tester_mq_get_buffsize(mqd_t queue, bool *err) {
     return (size_t) tmp.mq_msgsize;
 }
 
-void tester_mq_finish(bool server, mqd_t tester_mq, const char *tester_mq_name, bool *err) {
+void tester_mq_finish(bool unlink, mqd_t tester_mq, const char *tester_mq_name, bool *err) {
     assert(tester_mq_name != NULL && err != NULL);
 
     int tmp_err = 0;
@@ -70,7 +70,7 @@ void tester_mq_finish(bool server, mqd_t tester_mq, const char *tester_mq_name, 
     tmp_err = mq_close(tester_mq);
     VOID_FAIL_IF(tmp_err == -1);
 
-    if(server) {
+    if(unlink) {
         tmp_err = mq_unlink(tester_mq_name);
         VOID_FAIL_IF(tmp_err == -1);
     }
@@ -85,7 +85,7 @@ void tester_mq_send(mqd_t tester_mq, const char *word, bool completed, bool igno
         memcpy(msg.word, word, strlen(word));
     }
 
-    tmp_err = mq_send(tester_mq, (const char *)&msg, sizeof(tester_mq_msg), NORMAL_FLAG_PRIORITY);
+    tmp_err = mq_send(tester_mq, (const char *)&msg, sizeof(tester_mq_msg), NORMAL_MQ_PRIORITY);
     VOID_FAIL_IF(tmp_err == -1);
 }
 

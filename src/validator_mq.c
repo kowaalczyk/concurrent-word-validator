@@ -57,7 +57,7 @@ void validator_mq_send(mqd_t validator_mq, bool start, bool halt, bool finished,
         memcpy(msg.word, word, strlen(word));
     }
 
-    tmp_err = mq_send(validator_mq, (const char *)&msg, sizeof(validator_mq_msg), NORMAL_FLAG_PRIORITY);
+    tmp_err = mq_send(validator_mq, (const char *)&msg, sizeof(validator_mq_msg), NORMAL_MQ_PRIORITY);
     VOID_FAIL_IF(tmp_err == -1);
 }
 
@@ -75,13 +75,13 @@ ssize_t validator_mq_receive(mqd_t validator_mq, validator_mq_msg *msg, bool *er
     return request_ret;
 }
 
-void validator_mq_finish(bool server, mqd_t validator_mq, bool *err) {
+void validator_mq_finish(bool unlink, mqd_t validator_mq, bool *err) {
     int tmp_err = 0;
 
     tmp_err = mq_close(validator_mq);
     VOID_FAIL_IF(tmp_err == -1);
 
-    if(server) {
+    if(unlink) {
         tmp_err = mq_unlink(VALIDATOR_MQ_NAME);
         VOID_FAIL_IF(tmp_err == -1);
     }
