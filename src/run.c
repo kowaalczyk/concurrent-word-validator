@@ -2,11 +2,12 @@
 // Created by kowal on 27.12.17.
 //
 
-#include <stdbool.h>
-#include <memory.h>
-#include <assert.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <memory.h>
+#include <stdbool.h>
 #include <errno.h>
+#include <assert.h>
 #include "config.h"
 #include "validator_mq.h"
 #include "automaton.h"
@@ -117,22 +118,40 @@ bool accept(const automaton * a, const char * word) {
 }
 
 
-int main(int argc, char * argv[]) {
-//    assert(argc == 3);
-//    char * request_mq_name = argv[1];
-//    char * validation_start_request_content = argv[2];
+int main() {
+    // TODO: Use signals in error handling (if unable to send to validator, everything should die)
 
     bool err = false;
+    ssize_t tmp_err;
+    mqd_t validator_mq;
+    automaton a;
+    validator_mq_msg prepared_msg;
 
-    validator_mq_start(false, &err);
-    HANDLE_ERR_EXIT_ERRNO_WITH_MSG("TESTER: Failed to open validator mq");
+    validator_mq = validator_mq_start(false, &err);
+    HANDLE_ERR_EXIT_ERRNO_WITH_MSG("RUN: Failed to open validator mq");
 
-    // TODO: Receive automaton via pipe
-    // TODO: Receive word via pipe
-    // TODO: Close that MQ immediately
+    // TODO: Function
+    // receive automaton via pipe
+    tmp_err = read(0, &a, sizeof(automaton));
+    if(tmp_err != sizeof(automaton)) {
+        exit(-1); // TODO: better handling
+    }
 
-    // TODO: Process word
+    // receive prepared message via pipe
+    tmp_err = read(0, &prepared_msg, sizeof(validator_mq_msg));
+    if(tmp_err != sizeof(validator_mq_msg)) {
+        exit(-1); // TODO: better handling
+    }
 
-    // TODO: Send answer, close queues and return
+    // perform validation
+    prepared_msg.accepted = accept(&a, prepared_msg.word);
+
+    // send completed message back to the validator
+    validator_mq_send_msg(validator_mq, &prepared_msg, &err);
+    HANDLE_ERR_EXIT_ERRNO_WITH_MSG("RUN: Failed to send message to validator mq");
+
+    // clean up
+    validator_mq_finish(false, validator_mq, &err);
+    HANDLE_ERR_EXIT_ERRNO_WITH_MSG("RUN: Failed to close validator mq");
     return 0;
 }
