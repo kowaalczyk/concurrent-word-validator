@@ -20,6 +20,7 @@
 bool halt_flag_raised = false;
 size_t await_runs = 0;
 size_t await_forks = 0;
+mqd_t validator_mq;
 
 /**
  * Error handler.
@@ -50,6 +51,8 @@ void async_start_validation(const validator_mq_msg request_msg) {
             HANDLE_ERR(raise_halt_flag);
             break;
         case 0:
+            validator_mq_finish(false, validator_mq, &err);
+            HANDLE_ERR(kill_all_exit);
             // child creates run, sends automaton via mq, closes it and exits
 //            get_request_word(buffer, buffer_size, word);
             // TODO: Create MQ for sending automaton and word to run
@@ -67,9 +70,6 @@ void async_start_validation(const validator_mq_msg request_msg) {
 
 // TODO: Send complete to tester iff halt flag raised and tester.word_bal is 0
 
-// TODO: Forks should immediately close validator mq
-// TODO: Make sure multiple opening and closing tester_mqs in forks is working, if not implement vector of mqd_t-s w/ names
-
 void async_forward_response(const tester_t *tester, validator_mq_msg request_msg) {
     bool err = false;
     char tester_mq_name[TESTER_MQ_NAME_LEN];
@@ -80,7 +80,9 @@ void async_forward_response(const tester_t *tester, validator_mq_msg request_msg
             // TODO: Error handling
             break;
         case 0:
-            // TODO: Close validator mq
+            validator_mq_finish(false, validator_mq, &err);
+            HANDLE_ERR(kill_all_exit);
+
             tester_mq_get_name_from_pid(tester->pid, tester_mq_name);
             tester_mq = tester_mq_start(false, tester_mq_name, &err);
             HANDLE_ERR(kill_all_exit);
@@ -107,7 +109,9 @@ void async_reply_ignore(const tester_t *tester, validator_mq_msg request_msg) {
         case -1:
             break;
         case 0:
-            // TODO: Close validator mq
+            validator_mq_finish(false, validator_mq, &err);
+            HANDLE_ERR(kill_all_exit);
+
             tester_mq_get_name_from_pid(tester->pid, tester_mq_name);
             tester_mq = tester_mq_start(false, tester_mq_name, &err);
             HANDLE_ERR(kill_all_exit);
@@ -139,48 +143,48 @@ int main() {
 
     // setup queues
     const automaton * a = load_automaton();
-    mqd_t request_mq = validator_mq_start(true, &err);
+    validator_mq = validator_mq_start(true, &err);
     HANDLE_ERR_EXIT_WITH_MSG("VALIDATOR: Could not start validator mq");
 
     // handle incoming requests
-    validator_mq_msg request_msg;
+    validator_mq_msg validator_msg;
     while(!halt_flag_raised) {
-        validator_mq_receive(request_mq, &request_msg, &err);
+        validator_mq_receive(validator_mq, &validator_msg, &err);
         HANDLE_ERR(raise_halt_flag);
 
         // process request
-        if(request_msg.halt) {
-            tester_t * tester = tester_list_find(tester_data, request_msg.tester_pid);
+        if(validator_msg.halt) {
+            tester_t * tester = tester_list_find(tester_data, validator_msg.tester_pid);
             if(tester) {
                 tester->rcd++;
             } else {
-                tester_list_emplace(tester_data, request_msg.tester_pid, 1, 0, 0, &err);
+                tester_list_emplace(tester_data, validator_msg.tester_pid, 1, 0, 0, &err);
                 HANDLE_ERR(raise_halt_flag);
             }
             halt_flag_raised = true;
             // TODO: Notify known testers
 
-        } else if(request_msg.finished) {
+        } else if(validator_msg.finished) {
             // Update local logs and forward response TODO: Function
-            tester_t * tester = tester_list_find(tester_data, request_msg.tester_pid);
+            tester_t * tester = tester_list_find(tester_data, validator_msg.tester_pid);
             assert(tester != NULL);
             tester->word_bal--;
-            if(request_msg.accepted) {
+            if(validator_msg.accepted) {
                 tester->acc++;
             }
-            async_forward_response(tester, request_msg);
+            async_forward_response(tester, validator_msg);
 
-        } else if(request_msg.start) {
+        } else if(validator_msg.start) {
             // Update local logs and start validation TODO: Function
-            tester_t * tester = tester_list_find(tester_data, request_msg.tester_pid);
+            tester_t * tester = tester_list_find(tester_data, validator_msg.tester_pid);
             if(tester) {
                 tester->word_bal++;
                 tester->rcd++;
             } else {
-                tester_list_emplace(tester_data, request_msg.tester_pid, 1, 0, 1, &err);
+                tester_list_emplace(tester_data, validator_msg.tester_pid, 1, 0, 1, &err);
                 HANDLE_ERR(raise_halt_flag);
             }
-            async_start_validation(request_msg);
+            async_start_validation(validator_msg);
 
         } else {
             // TODO: Consider handling this
@@ -188,36 +192,36 @@ int main() {
     }
     // after halt flag is raised, wait for runs to complete and halt other testers if necessary
     while(await_runs) {
-        validator_mq_receive(request_mq, &request_msg, &err);
+        validator_mq_receive(validator_mq, &validator_msg, &err);
         HANDLE_ERR_DECREMENT_CONTINUE(await_runs);
 
         // process request
-        if(request_msg.finished) {
+        if(validator_msg.finished) {
             // Update local logs and forward response TODO: Function
-            tester_t * tester = tester_list_find(tester_data, request_msg.tester_pid);
+            tester_t * tester = tester_list_find(tester_data, validator_msg.tester_pid);
             assert(tester != NULL);
-            if(request_msg.accepted) {
+            if(validator_msg.accepted) {
                 tester->word_bal--;
                 tester->acc++;
             }
-            async_forward_response(tester, request_msg);
+            async_forward_response(tester, validator_msg);
 
         } else {
             // only happens when one tester send halt and other tester completed request before receiving signal
-            tester_t * tester = tester_list_find(tester_data, request_msg.tester_pid);
+            tester_t * tester = tester_list_find(tester_data, validator_msg.tester_pid);
             if(tester) {
                 tester->rcd += 1;
             } else {
-                tester_list_emplace(tester_data, request_msg.tester_pid, 1, 0, 0, &err);
+                tester_list_emplace(tester_data, validator_msg.tester_pid, 1, 0, 0, &err);
                 HANDLE_ERR(raise_halt_flag);
             }
-            async_reply_ignore(tester, request_msg);
+            async_reply_ignore(tester, validator_msg);
         }
     }
 
     // clean up
-    validator_mq_finish(true, request_mq, &err);
-    HANDLE_ERR(exit_with_errno); // TODO: Really check this
+    validator_mq_finish(true, validator_mq, &err);
+    HANDLE_ERR(kill_all_exit);
     free((void *) a);
     while(await_forks) {
         // TODO: Handle errors from forks
