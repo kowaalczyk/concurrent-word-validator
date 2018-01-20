@@ -50,19 +50,19 @@ void sender(const char * mq_name) {
     log("SENDER: created mq");
 
     log("SENDER: sending HALT...");
-    tester_mq_send_halt(tester_mq, &err);
+    tester_mq_send_completed(tester_mq, &err);
     HANDLE_ERR(err_sender);
     log("SENDER: sent HALT");
     sleep(send_delay_in_seconds);
 
     log("SENDER: sending VALIDATION PASS...");
-    tester_mq_send_validation_result(tester_mq, "dupa", "A", &err);
+    tester_mq_send(tester_mq, "dupa", NULL, NULL, NULL, &err);
     HANDLE_ERR(err_sender);
     log("SENDER: sent VALIDATION PASS");
     sleep(send_delay_in_seconds);
 
     log("SENDER: sending VALIDATION FAIL...");
-    tester_mq_send_validation_result(tester_mq, "dupa", "N", &err);
+    tester_mq_send(tester_mq, "dupa", NULL, NULL, NULL, &err);
     HANDLE_ERR(err_sender);
     log("SENDER: sent VALIDATION FAIL");
     sleep(send_delay_in_seconds);
@@ -113,7 +113,7 @@ int main() {
     char tester_mq_buff[tester_mq_buffsize];
     ssize_t response_ret;
     while(--i >= 0) {
-        response_ret = tester_mq_receive(tester_mq, tester_mq_buff, tester_mq_buffsize, &err);
+        response_ret = tester_mq_receive(tester_mq, NULL, &err);
         HANDLE_ERR(err_receiver);
         switch (i){
             case 2:
