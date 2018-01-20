@@ -61,6 +61,11 @@ void validator_mq_send(mqd_t validator_mq, bool start, bool halt, bool finished,
     VOID_FAIL_IF(tmp_err == -1);
 }
 
+// TODO: Optimize memory usage: call this function from the other to prevent duplicating msg struct
+void validator_mq_send_msg(mqd_t validator_mq, const validator_mq_msg *msg, bool *err) {
+    validator_mq_send(validator_mq, msg->start, msg->halt, msg->finished, msg->accepted, msg->tester_pid, msg->word, err);
+}
+
 ssize_t validator_mq_receive(mqd_t validator_mq, validator_mq_msg *msg, bool *err) {
     assert(msg != NULL && err != NULL);
 

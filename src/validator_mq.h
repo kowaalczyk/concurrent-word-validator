@@ -47,6 +47,14 @@ extern void validator_mq_send(mqd_t validator_mq, bool start, bool halt, bool fi
 
 /**
  * Blocking.
+ * Sends provided message to specified validator_mq
+ * @param validator_mq
+ * @param msg
+ */
+extern void validator_mq_send_msg(mqd_t validator_mq, const validator_mq_msg *msg, bool *err);
+
+/**
+ * Blocking.
  * Receives message from specified validator_mq
  * @param validator_mq
  * @param msg
