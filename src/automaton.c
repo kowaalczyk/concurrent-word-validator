@@ -43,14 +43,16 @@ void load_automaton(automaton *ptr, bool *err) {
                 // loading starting state
                 scanf("%d\n", &c_int);
                 assert(0 <= c_int && c_int < ptr->states_size);
-                ptr->starting_state = (char) (c_int + STR_STORAGE_VAL_OFFSET); // offsetting states in strings, see automaton struct documentation
+
+                ptr->starting_state = (char) (c_int + STR_STORAGE_VAL_OFFSET);
                 break;
             case 2:
                 // loading acceptable states
                 for(j=0; j<f; j++) {
                     scanf("%d\n", &c_int);
                     assert(0 <= c_int && c_int < ptr->states_size);
-                    c_int += STR_STORAGE_VAL_OFFSET; // offsetting states in strings, see automaton struct documentation
+
+                    c_int += STR_STORAGE_VAL_OFFSET;
                     ptr->acceptable_states[j] = (char) c_int;
                 }
                 ptr->acceptable_states[f] = '\0'; // Setting end of string manually

@@ -253,7 +253,7 @@ int main() {
             async_create_run(pipe_dsc);
             close(pipe_dsc[0]); // TODO: Handle err
 
-            async_pipe_data(pipe_dsc, a, &validator_msg);
+            async_pipe_data(pipe_dsc, &a, &validator_msg);
             close(pipe_dsc[1]); // TODO: Handle err
 
         } else {
