@@ -42,7 +42,7 @@ ssize_t async_pipe_send(int *pipe_dsc, const struct test_str *msg1, const char *
             }
 
             tmp_err = write(pipe_dsc[1], msg2, strlen(msg2)+1);
-            if(tmp_err != strlen(msg2)+1) {
+            if(tmp_err != (ssize_t)strlen(msg2)+1) {
                 syserr("Error in pipe write 2");
             }
 
@@ -63,7 +63,7 @@ ssize_t async_pipe_send(int *pipe_dsc, const struct test_str *msg1, const char *
     return tmp_err;
 }
 
-int main (int argc, char *argv[])
+int main ()
 {
     ssize_t tmp_err;
     int pipe_dsc[2];

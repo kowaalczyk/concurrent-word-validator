@@ -10,7 +10,7 @@ void load_automaton(automaton *ptr, bool *err) {
     VOID_FAIL_IF(ptr == NULL);
 
     // iteration variables
-    int i,j;
+    unsigned int i,j;
     // temporary data variables
     unsigned int n, a, u, q, f;
     int c_int;
@@ -42,7 +42,7 @@ void load_automaton(automaton *ptr, bool *err) {
             case 1:
                 // loading starting state
                 scanf("%d\n", &c_int);
-                assert(0 <= c_int && c_int < ptr->states_size);
+                assert(0 <= c_int && c_int < (int)ptr->states_size);
 
                 ptr->starting_state = (char) (c_int + STR_STORAGE_VAL_OFFSET);
                 break;

@@ -20,70 +20,67 @@ const bool enable_log = true;
 const int send_delay_in_seconds = 3;
 
 
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "OCSimplifyInspection"
-void log(const char * msg) {
+void test_log(const char *msg) {
     if(enable_log) {
         fprintf(stderr, "%s\n", msg);
     }
 }
-#pragma clang diagnostic pop
 
 void err_receiver() {
     int n = errno;
-    fprintf(stderr, "Error in receiver: %s\n", strerror(errno));
-    exit(errno);
+    fprintf(stderr, "Error in receiver: %s\n", strerror(n));
+    exit(n);
 }
 void err_sender() {
     int n = errno;
-    fprintf(stderr, "Error in sender: %s\n", strerror(errno));
-    exit(errno);
+    fprintf(stderr, "Error in sender: %s\n", strerror(n));
+    exit(n);
 }
 
 
 void sender() {
     bool err = false;
 
-    log("SENDER: creating mq...");
+    test_log("SENDER: creating mq...");
     mqd_t validator_mq = validator_mq_start(false, &err);
     HANDLE_ERR(err_sender);
-    log("SENDER: created mq");
+    test_log("SENDER: created mq");
 
-    log("SENDER: sending START...");
+    test_log("SENDER: sending START...");
     validator_mq_send(validator_mq, true, false, false, false, getpid(),"start", &err);
     HANDLE_ERR(err_sender);
-    log("SENDER: sent START");
+    test_log("SENDER: sent START");
     sleep(send_delay_in_seconds);
-    
-    log("SENDER: sending HALT...");
+
+    test_log("SENDER: sending HALT...");
     validator_mq_send(validator_mq, false, true, false, false, getpid(),"halt", &err);
     HANDLE_ERR(err_sender);
-    log("SENDER: sent HALT");
+    test_log("SENDER: sent HALT");
     sleep(send_delay_in_seconds);
 
-    log("SENDER: sending FINISHED...");
+    test_log("SENDER: sending FINISHED...");
     validator_mq_send(validator_mq, false, false, true, false, getpid(),"finished", &err);
     HANDLE_ERR(err_sender);
-    log("SENDER: sent FINISHED");
+    test_log("SENDER: sent FINISHED");
     sleep(send_delay_in_seconds);
 
-    log("SENDER: sending ACCEPTED...");
+    test_log("SENDER: sending ACCEPTED...");
     validator_mq_send(validator_mq, false, false, false, true, getpid(),"accepted", &err);
     HANDLE_ERR(err_sender);
-    log("SENDER: sent ACCEPTED");
+    test_log("SENDER: sent ACCEPTED");
     sleep(send_delay_in_seconds);
 
-    log("SENDER: finishing...");
+    test_log("SENDER: finishing...");
     validator_mq_finish(false, validator_mq, &err);
     HANDLE_ERR(err_sender);
-    log("SENDER: finished");
+    test_log("SENDER: finished");
 }
 
 pid_t async_sender() {
     pid_t pid;
     switch(pid = fork()) {
         case -1:
-            log("Error in fork");
+            test_log("Error in fork");
             exit(-1);
         case 0:
             // child
@@ -103,10 +100,10 @@ int main() {
     pid_t child_pid = async_sender();
 
 //    sleep(10); // sender will fail if queue is not opened!
-    log("RECEIVER: creating mq...");
+    test_log("RECEIVER: creating mq...");
     mqd_t validator_mq = validator_mq_start(true, &err);
     HANDLE_ERR(err_receiver);
-    log("RECEIVER: created mq");
+    test_log("RECEIVER: created mq");
 
     int i=4;
     validator_mq_msg msg;
@@ -127,20 +124,20 @@ int main() {
                 assert(msg.accepted);
                 break;
             default:
-                log("BAD MESSAGE");
+                test_log("BAD MESSAGE");
                 exit(-1);
                 break;
         }
         assert(msg.tester_pid == child_pid);
-        log("RECEIVER: received message:");
-        log(msg.word);
-        log("");
+        test_log("RECEIVER: received message:");
+        test_log(msg.word);
+        test_log("");
     }
 
-    log("RECEIVER: finishing...");
+    test_log("RECEIVER: finishing...");
     validator_mq_finish(true, validator_mq, &err);
     HANDLE_ERR(err_receiver);
-    log("RECEIVER: finished");
+    test_log("RECEIVER: finished");
 
     wait(NULL); // wait for sender
     return -errno;
