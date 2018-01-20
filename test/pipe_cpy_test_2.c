@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <zconf.h>
 #include <wait.h>
+#include <memory.h>
 #include "../src/err.h"
 
 
@@ -25,6 +26,40 @@ void print_test_str(FILE *f, const struct test_str * x) {
     for(int i=0; i<W_OPOR_DUZO; i++) {
         fprintf(f, "%c %c %c\n", x->a[i], x->b[i], x->c[i]);
     }
+}
+
+ssize_t async_pipe_send(int *pipe_dsc, const struct test_str *msg1, const char *msg2) {
+    ssize_t tmp_err = 0;
+
+    switch (fork()) {
+        case -1:
+            syserr("Parent: error in fork");
+        case 0:
+            tmp_err = write(pipe_dsc[1], msg1, sizeof(struct test_str));
+            if(tmp_err != sizeof(struct test_str)) {
+                syserr("Error in pipe write 1");
+            }
+
+            tmp_err = write(pipe_dsc[1], msg2, strlen(msg2)+1);
+            if(tmp_err != strlen(msg2)+1) {
+                syserr("Error in pipe write 2");
+            }
+
+            tmp_err = close(pipe_dsc[1]);
+            if(tmp_err == -1) {
+                syserr("Error in parent: cannot close pipe dsc 1");
+            }
+            exit(0);
+        default:
+            // parent closes only open descriptor
+            tmp_err = close(pipe_dsc[1]);
+            if(tmp_err == -1) {
+                syserr("Error in parent: cannot close pipe dsc 1");
+            }
+            break;
+    }
+
+    return tmp_err;
 }
 
 int main (int argc, char *argv[])
@@ -84,17 +119,8 @@ int main (int argc, char *argv[])
             if(tmp_err == -1) {
                 syserr("Error in parent: cannot close pipe dsc 0");
             }
-
-            tmp_err = write(pipe_dsc[1], &x, sizeof(struct test_str));
-            if(tmp_err != sizeof(struct test_str)) {
-                syserr("Error in pipe write");
-            }
-
-            tmp_err = close(pipe_dsc[1]);
-            if(tmp_err == -1) {
-                syserr("Error in parent: cannot close pipe dsc 1");
-            }
     }
+    async_pipe_send(pipe_dsc, &x, "loremipsum");
 
     // print test struct
     FILE *fp = fopen("../test_2_result_parent.txt", "wb");
@@ -103,7 +129,10 @@ int main (int argc, char *argv[])
     print_test_str(fp, &x);
     fclose(fp);
 
-    // wait for child to complete pipe operation
+    // wait for 2 children to complete pipe operation
+    if(wait(NULL) == -1) {
+        syserr("Error in wait");
+    }
     if(wait(NULL) == -1) {
         syserr("Error in wait");
     }
