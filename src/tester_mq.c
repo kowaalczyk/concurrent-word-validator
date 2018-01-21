@@ -66,8 +66,6 @@ void tester_mq_finish(bool unlink, mqd_t tester_mq, const char *tester_mq_name, 
 
     tmp_err = mq_close(tester_mq);
     if(unlink) {
-
-
         tmp_err = mq_unlink(tester_mq_name);
     }
     VOID_FAIL_IF(tmp_err == -1);
@@ -95,7 +93,7 @@ ssize_t tester_mq_receive(mqd_t tester_mq, tester_mq_msg *msg, bool *err) {
 
     char buff[buffsize];
     ssize_t request_ret = mq_receive(tester_mq, buff, buffsize, NULL);
-    INT_FAIL_IF(request_ret == 0);
+    INT_FAIL_IF(request_ret <= 0);
 
     memcpy(msg, buff, sizeof(tester_mq_msg));
     return request_ret;
