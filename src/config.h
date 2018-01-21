@@ -42,9 +42,9 @@ extern void log_formatted(const char *fmt, ...);
 
 /// struct containing standard communication summary for application within a project
 typedef struct comm_summary{
-    size_t snt;
-    size_t rcd;
-    size_t acc;
+    volatile size_t snt;
+    volatile size_t rcd;
+    volatile size_t acc;
 } comm_sumary_t;
 
 /// prints communication summary to stdout
