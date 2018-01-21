@@ -4,8 +4,8 @@ project(pw_validator)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_FLAGS "-Wall -Werror")
 
-set(CMAKE_C_FLAGS_DEBUG "-g -DPW_ENABLE_LOGGING")
-set(CMAKE_C_FLAGS_RELEASE  "-DNDEBUG")
+set(CMAKE_C_FLAGS_DEBUG "-O0 -g -DPW_ENABLE_LOGGING")
+set(CMAKE_C_FLAGS_RELEASE  "-O3 -DNDEBUG")
 
 
 add_library(err STATIC src/err.h src/err.c) # TODO: Add custom err library
@@ -49,8 +49,8 @@ target_link_libraries(run config validator_mq automaton)
 #add_executable(struct_load_malloc_test test/struct_memory_alloc_test.c) # TODO: Fix refactored names
 #target_link_libraries(struct_load_malloc_test config automaton)
 #
-#add_executable(seq_word_validation_test test/seq_word_validation_test.c) # TODO: Fix refactored names
-#target_link_libraries(seq_word_validation_test config automaton)
+add_executable(seq_word_validation_test test/seq_word_validation_test.c)
+target_link_libraries(seq_word_validation_test config automaton)
 
 add_executable(tester_mq_test test/tester_mq_test.c)
 target_link_libraries(tester_mq_test config tester_mq)
