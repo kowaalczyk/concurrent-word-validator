@@ -172,26 +172,34 @@ void collect_sender(bool *err) {
  * @param err
  */
 void read_and_send(bool *err) {
-    int tmp_err;
+    int tmp_err = 0;
+    bool start = true;
+    bool halt = !start;
     char buffer[WORD_LEN_MAX+2]; // + '\n' and '\0'
     while(fgets(buffer, sizeof(buffer), stdin) != NULL) {
         assert(buffer[strlen(buffer)-1] == '\n');
 
         buffer[strlen(buffer)-1] = '\0';
-        bool start = (buffer[0]!='!');
-        bool halt = !start;
+        start = (buffer[0]!='!');
+        halt = !start;
 
         log_formatted("%d SND: %s", getpid(), buffer);
-        validator_mq_send(validator_mq, start, halt, 0, false, false, main_pid, buffer, err);
+        validator_mq_send(validator_mq, start, halt, halt, false, false, main_pid, buffer, err); // halt => completed
         VOID_FAIL_IF(*err); // pass error further
 
         tmp_err = kill(main_pid, SIG_SNT_SUCCESS);
         VOID_FAIL_IF(tmp_err == -1);
 
         buffer[0] = '\0'; // following shorter words cannot contain junk
+        if(halt) {
+            break; // no point in sending extra words
+        }
     }
-    // TODO: Send complete mq message to validator (requires changing validator mq msg struct !!!)
-
+    if(!halt) {
+        // halt => completed, so there is no point in sending second completed message
+        validator_mq_send(validator_mq, false, false, true, false, false, main_pid, buffer, err);
+        VOID_FAIL_IF(*err); // pass error further
+    }
 }
 
 /**
@@ -253,7 +261,7 @@ int main() {
         process_response(&tester_msg);
         if(tester_msg.completed) {
             kill(sender_pid, SIG_RCD_COMPLETE);
-            // completed is received only once, and no messages will be sent from server after that
+            // completed is received exactly once (unless an error occured), and no following messages are sent
             break;
         }
     }
