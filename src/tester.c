@@ -122,7 +122,7 @@ void setup_sig_handlers(bool *err) {
     tmp_err = sigemptyset(&snt_success_action.sa_mask);
     VOID_FAIL_IF(tmp_err == -1);
 
-    snt_success_action.sa_flags = 0;
+    snt_success_action.sa_flags = SA_RESTART; // prevent killing mq read when non-killing signal is received
     snt_success_action.sa_handler = sig_snt_success_handler;
     tmp_err = sigaction(SIG_SNT_SUCCESS, &snt_success_action, NULL);
     VOID_FAIL_IF(tmp_err == -1);
@@ -131,7 +131,7 @@ void setup_sig_handlers(bool *err) {
     tmp_err = sigemptyset(&rcd_complete_action.sa_mask);
     VOID_FAIL_IF(tmp_err == -1);
 
-    rcd_complete_action.sa_flags = 0;
+    rcd_complete_action.sa_flags = SA_RESTART; // prevent killing mq read when non-killing signal is received
     rcd_complete_action.sa_handler = sig_rcd_complete_handler;
     tmp_err = sigaction(SIG_RCD_COMPLETE, &snt_success_action, NULL);
     VOID_FAIL_IF(tmp_err == -1);
@@ -248,7 +248,7 @@ int main() {
         HANDLE_ERR_WITH_MSG(err_sig_other_and_exit, "Failed to receive message from tester mq");
 
         if(!tester_msg.ignored) {
-            log_formatted("%d RCD: %s", getpid(), tester_msg.word);
+            log_formatted("%d RCD: %s, total rcd=%d, BEFORE RCD INCREMENT", getpid(), tester_msg.word, comm_summary.rcd);
             comm_summary.rcd++;
             if(tester_msg.accepted) {
                 comm_summary.acc++;
@@ -263,7 +263,7 @@ int main() {
             // completed is received exactly once (unless an error occurred),
             // but following messages can still arrive if their order mixed up in validator's async senders
             expected_rcd = tester_msg.total_processed;
-            log_formatted("Expecting to wait for %d mode responses...", (expected_rcd-comm_summary.rcd));
+            log_formatted("Expecting to wait for (%d-%d)=%d mode responses...", expected_rcd, comm_summary.rcd, expected_rcd-comm_summary.rcd);
             rcd_completed = true;
         }
     }
