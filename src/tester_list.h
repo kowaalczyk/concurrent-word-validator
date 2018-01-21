@@ -29,15 +29,15 @@ typedef struct tester_list{
 extern tester_list_t * tester_list_create(bool *err);
 
 /**
- * Creates an element within a list with provided parameters.
+ * Creates an element within a list with provided parameters, and returns pointer to that element.
  * @param list
  * @param pid
  * @param rcd
  * @param acc
  * @param err
  */
-extern void
-tester_list_emplace(tester_list_t *list, pid_t pid, size_t rcd, size_t acc, int word_bal, bool completed, bool *err);
+extern tester_t * tester_list_emplace(tester_list_t *list, pid_t pid, size_t rcd, size_t acc, int word_bal,
+                                      bool completed, bool *err);
 
 /**
  * Checks if element with provided pid is present in a list.
