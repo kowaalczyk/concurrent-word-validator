@@ -32,7 +32,6 @@ static struct sigaction rcd_complete_action;
 
 static comm_sumary_t comm_summary = {0, 0, 0};
 
-// TODO: Signal from validator (custom)
 
 /**
  * Error handler.
@@ -46,6 +45,7 @@ void err_sig_other_and_exit() {
 
 /**
  * Signal handler for SIG_SNT_SUCCESS.
+ * Used to notify main process about successful attempt to send message by a child process.
  * @param sig
  */
 void sig_snt_success_handler(int sig) {
@@ -56,10 +56,12 @@ void sig_snt_success_handler(int sig) {
 }
 
 /**
- * Signal handler for SIG_RCD_COMPLETE
+ * Signal handler for SIG_RCD_COMPLETE.
+ * Used to gracefully stop child process when it is no longer necessary, but not in case of error.
  * @param sig
  */
 void sig_rcd_complete_handler(int sig) {
+    assert(sig == SIG_RCD_COMPLETE);
     assert(sender_pid == getpid());
 
     log_formatted("Sender received complete signal");
@@ -75,6 +77,8 @@ void sig_rcd_complete_handler(int sig) {
  * @param sig
  */
 void sig_err_handler(int sig) {
+    assert(sig == SIGINT || sig == SIGTERM);
+
     if(main_pid == getpid()) {
         // main process
         validator_mq_finish(false, validator_mq, &err);
@@ -131,25 +135,10 @@ void setup_sig_handlers(bool *err) {
     tmp_err = sigemptyset(&rcd_complete_action.sa_mask);
     VOID_FAIL_IF(tmp_err == -1);
 
-    rcd_complete_action.sa_flags = SA_RESTART; // prevent killing mq read when non-killing signal is received
+    rcd_complete_action.sa_flags = 0;
     rcd_complete_action.sa_handler = sig_rcd_complete_handler;
     tmp_err = sigaction(SIG_RCD_COMPLETE, &snt_success_action, NULL);
     VOID_FAIL_IF(tmp_err == -1);
-}
-
-/**
- * Waits for sender to finish working and checks its exit code.
- * Standard error handling.
- * @param err
- */
-void collect_sender(bool *err) {
-    assert(await_sender == true);
-
-    pid_t tmp_pid = 0;
-    int wait_ret = EXIT_SUCCESS;
-    tmp_pid = wait(&wait_ret);
-    VOID_FAIL_IF(tmp_pid == -1 || wait_ret != EXIT_SUCCESS);
-    await_sender = false;
 }
 
 /**
@@ -158,7 +147,7 @@ void collect_sender(bool *err) {
  * Standard error handling.
  * @param err
  */
-void read_and_send(bool *err) {
+void run_sender(bool *err) {
     int tmp_err = 0;
     bool start = true;
     bool halt = !start;
@@ -212,7 +201,7 @@ void async_spawn_sender() {
             validator_mq = validator_mq_start(false, &err); // assuming there is only one validator
             HANDLE_ERR_WITH_MSG(err_sig_other_and_exit, "Failed to start validator mq");
 
-            read_and_send(&err);
+            run_sender(&err);
             HANDLE_ERR_WITH_MSG(err_sig_other_and_exit, "Failed to read/send word to validator mq");
 
             validator_mq_finish(false, validator_mq, &err);
@@ -221,6 +210,48 @@ void async_spawn_sender() {
         default:
             await_sender = true;
             break;
+    }
+}
+
+/**
+ * Blocking.
+ * Waits for sender to finish working and checks its exit code.
+ * Standard error handling.
+ * @param err
+ */
+void collect_sender(bool *err) {
+    assert(await_sender == true);
+
+    pid_t tmp_pid = 0;
+    int wait_ret = EXIT_SUCCESS;
+    tmp_pid = wait(&wait_ret);
+    VOID_FAIL_IF(tmp_pid == -1 || wait_ret != EXIT_SUCCESS);
+    await_sender = false;
+}
+
+/**
+ * Processes message received to tester mq.
+ * @param tester_msg
+ */
+void process_msg(const tester_mq_msg *tester_msg) {
+    if(!(*tester_msg).ignored) {
+        comm_summary.rcd++;
+        log_formatted("%d RCD: %s, total rcd=%d", getpid(), (*tester_msg).word, comm_summary.rcd);
+        if((*tester_msg).accepted) {
+            comm_summary.acc++;
+            printf("%s A\n", (*tester_msg).word);
+        } else {
+            printf("%s N\n", (*tester_msg).word);
+        }
+    }
+    if((*tester_msg).completed) {
+        log_formatted("%d RCD: COMPLETED", getpid());
+        kill(sender_pid, SIG_RCD_COMPLETE);
+        // completed is received exactly once (unless an error occurred),
+        // but following messages can still arrive if their order mixed up in validator's async senders
+        expected_rcd = (*tester_msg).total_processed;
+        log_formatted("Expecting to wait for (%d-%d)=%d mode responses...", expected_rcd, comm_summary.rcd, expected_rcd-comm_summary.rcd);
+        rcd_completed = true;
     }
 }
 
@@ -247,25 +278,7 @@ int main() {
         tester_mq_receive(tester_mq, &tester_msg, &err);
         HANDLE_ERR_WITH_MSG(err_sig_other_and_exit, "Failed to receive message from tester mq");
 
-        if(!tester_msg.ignored) {
-            log_formatted("%d RCD: %s, total rcd=%d, BEFORE RCD INCREMENT", getpid(), tester_msg.word, comm_summary.rcd);
-            comm_summary.rcd++;
-            if(tester_msg.accepted) {
-                comm_summary.acc++;
-                printf("%s A\n", tester_msg.word);
-            } else {
-                printf("%s N\n", tester_msg.word);
-            }
-        }
-        if(tester_msg.completed) {
-            log_formatted("%d RCD: COMPLETED", getpid());
-            kill(sender_pid, SIG_RCD_COMPLETE);
-            // completed is received exactly once (unless an error occurred),
-            // but following messages can still arrive if their order mixed up in validator's async senders
-            expected_rcd = tester_msg.total_processed;
-            log_formatted("Expecting to wait for (%d-%d)=%d mode responses...", expected_rcd, comm_summary.rcd, expected_rcd-comm_summary.rcd);
-            rcd_completed = true;
-        }
+        process_msg(&tester_msg);
     }
     tester_mq_finish(true, tester_mq, tester_mq_name, &err);
     HANDLE_ERR_WITH_MSG(err_sig_other_and_exit, "Failed to finish tester mq in main process");
