@@ -302,7 +302,7 @@ int main() {
             kill_all_exit();
         }
         if(wait_ret == 0) {
-            comm_summary.snt++;
+            comm_summary.snt++; // TODO: Count only actual sends
         }
         await_forks--;
     }

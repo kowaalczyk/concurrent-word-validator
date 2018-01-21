@@ -5,11 +5,14 @@
 
 
 // PASTE IMPLEMENTATION HERE -------------------------------------------------------------------------------------------
-#include <stdbool.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <memory.h>
+#include <stdbool.h>
 #include <assert.h>
+#include "../src/config.h"
 #include "../src/automaton.h"
+#include "../src/validator_mq.h"
 
 
 /// checks if given state is universal in a given automata
@@ -72,7 +75,7 @@ bool accept_rec(const automaton *a, const char *word, const char *state_list) {
         // need to accept_rec any of following states
         int i;
         for(i=0; i<following_states_length; i++) {
-            char state_list_extended[STR_LEN_MAX]; // states list for given word is equal its length
+            char state_list_extended[WORD_LEN_MAX]; // states list for given word is equal its length
             strcpy(state_list_extended, state_list);
             size_t fs_len = strlen(state_list_extended);
             // append one of possible following states to current state_list
@@ -80,6 +83,7 @@ bool accept_rec(const automaton *a, const char *word, const char *state_list) {
             state_list_extended[fs_len+1] = '\0';
             assert(strlen(state_list_extended) == strlen(state_list)+1);
 
+            // TODO: fork()
             if(accept_rec(a, word, state_list_extended)) {
                 return true;
             }
@@ -90,7 +94,7 @@ bool accept_rec(const automaton *a, const char *word, const char *state_list) {
     assert(is_universal(a, state_list[depth]));
     int i;
     for(i=0; i<following_states_length; i++) {
-        char state_list_extended[STR_LEN_MAX]; // states list for given word is equal its length
+        char state_list_extended[WORD_LEN_MAX]; // states list for given word is equal its length
         strcpy(state_list_extended, state_list);
         size_t fs_len = strlen(state_list_extended);
         // append one of possible following states to current state_list
@@ -98,6 +102,7 @@ bool accept_rec(const automaton *a, const char *word, const char *state_list) {
         state_list_extended[fs_len+1] = '\0';
         assert(strlen(state_list_extended) == strlen(state_list)+1);
 
+        // TODO: fork()
         if(!accept_rec(a, word, state_list_extended)) {
             return false;
         }
@@ -108,149 +113,57 @@ bool accept_rec(const automaton *a, const char *word, const char *state_list) {
 
 /// checks if given automaton accepts given word
 bool accept(const automaton * a, const char * word) {
-    char state_list[STR_LEN_MAX]; // states list for given word is equal its length
+    char state_list[WORD_LEN_MAX]; // states list for given word is equal its length
     state_list[0] = a->starting_state;
     state_list[1] = '\0';
     return accept_rec(a, word, state_list);
 }
 
+
 // TEST ENGINE AUTOMATA LOAD IMPL --------------------------------------------------------------------------------------
-
-
-/// loads automaton from standard input, allocates memory should be freed later
-const automaton * load_data() {
-    // iteration variables
-    int i,j;
-    // temporary data variables
-    unsigned int n, a, u, q, f;
-    int c_int;
-    char c_char;
-    int state;
-    int letter;
-    // buffers for loading arrays
-    char * input_buff = NULL;
-    char * input_buff_freeable = NULL;
-    int input_buff_offset = 0;
-    size_t input_buff_len = 0;
-
-    // allocate memory
-    automaton * ans = (automaton*)malloc(sizeof(automaton));
-    if(ans == NULL) {
-        printf("Invalid malloc, cannot load automaton.\n");
-        exit(1);
-    }
-
-    // clean arrays to prevent weird errors
-    ans->acceptable_states[0] = '\0';
-    for(j=0; j<TRANSITIONS_MAX_SIZE; j++) {
-        ans->transitions[j][0] = '\0';
-    }
-
-    // load structure parameters
-    scanf("%d %d %d %d %d\n", &n, &a, &q, &u, &f);
-    ans->alphabet_size = n;
-    ans->states_size = q;
-    ans->universal_states_size = u;
-
-    // load structure arrays
-    for(i=1; i<n; i++) {
-        switch(i) {
-            // 0 has already been loaded
-            case 1:
-                // loading starting state
-                scanf("%d\n", &c_int);
-                assert(0 <= c_int && c_int < ans->states_size);
-                ans->starting_state = (char) (c_int + STR_STORAGE_VAL_OFFSET); // offsetting states in strings, see automaton struct documentation
-                break;
-            case 2:
-                // loading acceptable states
-                for(j=0; j<f; j++) {
-                    scanf("%d\n", &c_int);
-                    assert(0 <= c_int && c_int < ans->states_size);
-                    c_int += STR_STORAGE_VAL_OFFSET; // offsetting states in strings, see automaton struct documentation
-                    ans->acceptable_states[j] = (char) c_int;
-                }
-                ans->acceptable_states[f] = '\0'; // Setting end of string manually
-                break;
-            default:
-                // loading transition function
-                assert(input_buff == NULL);
-                assert(input_buff_freeable == NULL);
-                assert(input_buff_offset == 0);
-                assert(input_buff_len == 0);
-                if(getline(&input_buff, &input_buff_len, stdin) == -1) {
-                    printf("Failed to perform getline() during automaton load: error in stdin or during memory allocation.\n");
-                    exit(1);
-                }
-                input_buff_freeable = input_buff; // input_buff is incremented, this is used to free memory later
-
-                // Scanning state and letter separately in order to keep track of the offset
-                sscanf(input_buff, "%d %n", &state, &input_buff_offset);
-                input_buff += input_buff_offset;
-                sscanf(input_buff, "%c %n", &c_char, &input_buff_offset);
-                input_buff += input_buff_offset;
-                assert(input_buff_offset > 0);
-
-                // letter has to be normalized to fit in 0..ALPHABET_MAX_SIZE
-                letter = (int)(c_char-'a');
-
-                // reading transition function for given <state, letter>
-                size_t transition_pos = state * (ans->alphabet_size) + letter;
-                j = 0;
-                while(sscanf(input_buff, "%d %n", &c_int, &input_buff_offset) == 1) {
-                    c_int += STR_STORAGE_VAL_OFFSET; // offsetting states in strings, see automaton struct documentation
-                    ans->transitions[transition_pos][j] = (char)(c_int);
-                    j++;
-                    input_buff += input_buff_offset;
-                }
-                ans->transitions[transition_pos][j] = '\0';
-
-                // clean buffers
-                free(input_buff_freeable);
-                input_buff = NULL;
-                input_buff_freeable = NULL;
-                input_buff_offset = 0;
-                input_buff_len = 0;
-                break;
-        }
-    }
-    return ans;
-}
-
 
 /**
  * Runs single test, requires input from stdin:
  * [automaton description]
- * [number of words to process]
- * [word 1|0]
+ * [word\n[1|0]\n]
  * where 1 means the given word should be accepted, 0 that it should not.
  */
 void run_test() {
-    const automaton * a = load_data();
-    int i, num_of_words;
+    automaton a;
+    size_t failed = 0;
+    bool err = false;
+    load_automaton(&a, &err);
 
-    scanf("%d", &num_of_words);
-    int x = num_of_words; // for some reason num_of_words is nulled after each iteration, TODO: FIX
-    for(i = 0; i < x; i++) {
-        printf("Running test case #%d of %d:\n", i+1, num_of_words);
-        char word[STR_LEN_MAX];
-        bool expected_ans;
+    char buffer[WORD_LEN_MAX+2]; // + '\n' and '\0'
+    while(fgets(buffer, sizeof(buffer), stdin)) {
+        assert(buffer[strlen(buffer)-1] == '\n');
+        buffer[strlen(buffer)-1] = '\0';
 
-        scanf("%s", word);
-        scanf("%d", &expected_ans);
-        assert(expected_ans==0 || expected_ans == 1);
+        // load answer for loaded word
+        char expected_ans_tmp[10];
+        fgets(expected_ans_tmp, 10, stdin);
+        bool expected_ans = (bool)(expected_ans_tmp[0]-'0');
+        assert(expected_ans==true || expected_ans == false);
 
-        bool ans = accept(a, word);
+        // testing if validator mq holds enough data
+        validator_mq_msg test_msg = {false, false, true, false, getpid(), ""};
+        memcpy(test_msg.word, buffer, strlen(buffer));
+        printf("Validating processed word: %s\n", test_msg.word);
+
+        // testing validation result
+        bool ans = accept(&a, test_msg.word);
         if(ans != expected_ans) {
-            printf("FAILED TEST: %s - ", word);
+            failed++;
+            printf("FAILED TEST: %s - ", test_msg.word);
             char boolstr[2][100] = {"false", "true"};
             printf("got %s instead of %s. \n", boolstr[ans], boolstr[expected_ans]);
         } else {
-            printf("PASSED: %s\n", word);
+            printf("PASSED: %s\n", test_msg.word);
         }
+        printf("\n");
+        buffer[0] = '\0';
     }
-    printf("Finished: %d %d.\n", i, x);
-    free((void *) a);
+    printf("Finished, # of failed cases: %zu.\n", failed);
 }
 
 int main() {

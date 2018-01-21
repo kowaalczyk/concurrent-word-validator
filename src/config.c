@@ -10,7 +10,7 @@ void log_formatted(const char *fmt, ...) {
     if(enable_logging) {
         va_list args;
         va_start(args, fmt);
-        vprintf(fmt, args);
+        vfprintf(stderr, fmt, args);
         va_end(args);
         printf("\n");
     }

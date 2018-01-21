@@ -7,6 +7,7 @@
 #include <errno.h>
 #include <zconf.h>
 #include <wait.h>
+#include <assert.h>
 #include "validator_mq.h"
 #include "tester_mq.h"
 
@@ -52,6 +53,7 @@ void async_send_request_to_validator(mqd_t validator_mq, const char * word) {
             exit(-1); // TODO: Error handling
         case 0:
             tester_mq_finish(false, tester_mq, NULL, &err);
+            close(0); // to prevent data race
             HANDLE_ERR(kill_children_exit);
 
             // TODO: Set handler to exit(1) if parent interrupts
@@ -59,6 +61,7 @@ void async_send_request_to_validator(mqd_t validator_mq, const char * word) {
             HANDLE_ERR(exit_with_errno);
             exit(0);
         default:
+            await_responses++;
             await_forks++;
     }
 }
@@ -69,6 +72,7 @@ int main() {
     bool err = false;
     main_pid = getpid();
     comm_sumary_t comm_summary = {0, 0, 0};
+    log_formatted("TESTER: started with pid=%d", main_pid);
 
     // setup queues
     char tester_mq_name[TESTER_MQ_NAME_LEN];
@@ -81,9 +85,13 @@ int main() {
 
 
     // load words and send them asynchronously
-    char buffer[WORD_LEN_MAX+2]; // + '\n' and EOF
-    while(fgets(buffer, sizeof(buffer), stdin)) {
+    char buffer[WORD_LEN_MAX+2]; // + '\n' and '\0'
+    while(fgets(buffer, sizeof(buffer), stdin) != NULL) {
+        assert(buffer[strlen(buffer)-1] == '\n');
+        buffer[strlen(buffer)-1] = '\0';
+        log_formatted("%d sending: %s", getpid(), buffer);
         async_send_request_to_validator(validator_mq, buffer);
+        memset(buffer, '\0', WORD_LEN_MAX+2);
     }
     validator_mq_finish(false, validator_mq, &err);
     HANDLE_ERR(exit_with_errno);
@@ -95,6 +103,7 @@ int main() {
         HANDLE_ERR(kill_children_exit);
 
         comm_summary.rcd++; // TODO: Function
+        log_formatted("%d received response for: %s", getpid(), tester_msg.word);
         if(!tester_msg.ignored) {
             await_responses--;
             if(tester_msg.accepted) {
@@ -121,6 +130,9 @@ int main() {
         }
         if(wait_ret == 0) {
             comm_summary.snt++;
+        } else if(wait_ret < 0) {
+            log_formatted("TESTER: Unexpected error in fork!");
+            exit(-1);
         }
         await_forks--;
     }
