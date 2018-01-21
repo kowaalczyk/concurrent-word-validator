@@ -73,11 +73,12 @@ void tester_mq_finish(bool unlink, mqd_t tester_mq, const char *tester_mq_name, 
     VOID_FAIL_IF(tmp_err == -1);
 }
 
-void tester_mq_send(mqd_t tester_mq, const char *word, bool completed, bool ignored, bool accepted, bool *err) {
+void tester_mq_send(mqd_t tester_mq, const char *word, bool completed, size_t total_processed, bool ignored, bool accepted,
+                    bool *err) {
     assert(err != NULL);
 
     int tmp_err = 0;
-    tester_mq_msg msg = {completed, ignored, accepted, ""};
+    tester_mq_msg msg = {completed, total_processed, ignored, accepted, ""};
     if(word != NULL) {
         memcpy(msg.word, word, strlen(word));
     }

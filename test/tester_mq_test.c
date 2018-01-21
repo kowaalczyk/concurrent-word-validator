@@ -45,19 +45,19 @@ void sender(const char * mq_name) {
     test_log("SENDER: created mq");
 
     test_log("SENDER: sending COMPLETED...");
-    tester_mq_send(tester_mq, "completed", true, false, false, &err);
+    tester_mq_send(tester_mq, "completed", true, 0, false, false, &err);
     HANDLE_ERR(err_sender);
     test_log("SENDER: sent COMPLETED");
     sleep(send_delay_in_seconds);
 
     test_log("SENDER: sending IGNORED...");
-    tester_mq_send(tester_mq, "ignored", false, true, false, &err);
+    tester_mq_send(tester_mq, "ignored", false, 0, true, false, &err);
     HANDLE_ERR(err_sender);
     test_log("SENDER: sent IGNORED");
     sleep(send_delay_in_seconds);
 
     test_log("SENDER: sending ACCEPTED...");
-    tester_mq_send(tester_mq, "accepted", false, false, true, &err);
+    tester_mq_send(tester_mq, "accepted", false, 0, false, true, &err);
     HANDLE_ERR(err_sender);
     test_log("SENDER: sent ACCEPTED");
     sleep(send_delay_in_seconds);

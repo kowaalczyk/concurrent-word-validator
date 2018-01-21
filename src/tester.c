@@ -16,6 +16,8 @@
 
 static bool err = false;
 static bool await_sender = false;
+static bool rcd_completed = false;
+static size_t expected_rcd = 0;
 
 static pid_t main_pid = 0;
 static pid_t sender_pid = 0;
@@ -136,22 +138,6 @@ void setup_sig_handlers(bool *err) {
 }
 
 /**
- * Processes single message from tester mq.
- * @param msg
- */
-void process_response(const tester_mq_msg *msg) {
-    if(!msg->ignored) {
-        comm_summary.rcd++;
-        if(msg->accepted) {
-            comm_summary.acc++;
-            printf("%s A\n", msg->word);
-        } else {
-            printf("%s N\n", msg->word);
-        }
-    }
-}
-
-/**
  * Waits for sender to finish working and checks its exit code.
  * Standard error handling.
  * @param err
@@ -188,8 +174,10 @@ void read_and_send(bool *err) {
         validator_mq_send(validator_mq, start, halt, halt, false, false, main_pid, buffer, err); // halt => completed
         VOID_FAIL_IF(*err); // pass error further
 
-        tmp_err = kill(main_pid, SIG_SNT_SUCCESS);
-        VOID_FAIL_IF(tmp_err == -1);
+        if(!halt) {
+            tmp_err = kill(main_pid, SIG_SNT_SUCCESS);
+            VOID_FAIL_IF(tmp_err == -1);
+        }
 
         buffer[0] = '\0'; // following shorter words cannot contain junk
         if(halt) {
@@ -255,17 +243,28 @@ int main() {
 
     // process validator responses
     tester_mq_msg tester_msg;
-    while(true) {
+    while(!rcd_completed || comm_summary.rcd < expected_rcd) {
         tester_mq_receive(tester_mq, &tester_msg, &err);
         HANDLE_ERR_WITH_MSG(err_sig_other_and_exit, "Failed to receive message from tester mq");
 
-        log_formatted("%d RCD: %s", getpid(), tester_msg.word);
-        process_response(&tester_msg);
+        if(!tester_msg.ignored) {
+            log_formatted("%d RCD: %s", getpid(), tester_msg.word);
+            comm_summary.rcd++;
+            if(tester_msg.accepted) {
+                comm_summary.acc++;
+                printf("%s A\n", tester_msg.word);
+            } else {
+                printf("%s N\n", tester_msg.word);
+            }
+        }
         if(tester_msg.completed) {
             log_formatted("%d RCD: COMPLETED", getpid());
             kill(sender_pid, SIG_RCD_COMPLETE);
-            // completed is received exactly once (unless an error occured), and no following messages are sent
-            break;
+            // completed is received exactly once (unless an error occurred),
+            // but following messages can still arrive if their order mixed up in validator's async senders
+            expected_rcd = tester_msg.total_processed;
+            log_formatted("Expecting to wait for %d mode responses...", (expected_rcd-comm_summary.rcd));
+            rcd_completed = true;
         }
     }
     tester_mq_finish(true, tester_mq, tester_mq_name, &err);
