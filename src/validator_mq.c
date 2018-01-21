@@ -47,12 +47,12 @@ size_t validator_mq_get_buffsize(mqd_t queue, bool *err) {
     return (size_t) tmp.mq_msgsize;
 }
 
-void validator_mq_send(mqd_t validator_mq, bool start, bool halt, bool finished, bool accepted, pid_t tester_pid,
-                       const char *word, bool *err) {
+void validator_mq_send(mqd_t validator_mq, bool start, bool halt, bool completed, bool finish, bool accepted,
+                       pid_t tester_pid, const char *word, bool *err) {
     assert(err != NULL);
 
     int tmp_err = 0;
-    validator_mq_msg msg = {start, halt, finished, accepted, tester_pid, ""};
+    validator_mq_msg msg = {start, halt, completed, finish, accepted, tester_pid, ""};
     if(word != NULL) {
         memcpy(msg.word, word, strlen(word));
     }
@@ -63,7 +63,8 @@ void validator_mq_send(mqd_t validator_mq, bool start, bool halt, bool finished,
 
 // TODO: Optimize memory usage: call this function from the other to prevent duplicating msg struct
 void validator_mq_send_msg(mqd_t validator_mq, const validator_mq_msg *msg, bool *err) {
-    validator_mq_send(validator_mq, msg->start, msg->halt, msg->finished, msg->accepted, msg->tester_pid, msg->word, err);
+    validator_mq_send(validator_mq, msg->start, msg->halt, 0, msg->finish, msg->accepted, msg->tester_pid, msg->word,
+                      err);
 }
 
 ssize_t validator_mq_receive(mqd_t validator_mq, validator_mq_msg *msg, bool *err) {
@@ -74,7 +75,7 @@ ssize_t validator_mq_receive(mqd_t validator_mq, validator_mq_msg *msg, bool *er
 
     char buff[buffsize];
     ssize_t request_ret = mq_receive(validator_mq, buff, buffsize, NULL);
-    INT_FAIL_IF(request_ret == 0);
+    INT_FAIL_IF(request_ret <= 0);
 
     memcpy(msg, buff, sizeof(validator_mq_msg));
     return request_ret;
@@ -86,10 +87,9 @@ void validator_mq_finish(bool unlink, mqd_t validator_mq, bool *err) {
     int tmp_err = 0;
 
     tmp_err = mq_close(validator_mq);
-    VOID_FAIL_IF(tmp_err == -1);
-
     if(unlink) {
+        // intentionally performed before error checking to efficiently free resources in case of error
         tmp_err = mq_unlink(VALIDATOR_MQ_NAME);
-        VOID_FAIL_IF(tmp_err == -1);
     }
+    VOID_FAIL_IF(tmp_err == -1);
 }

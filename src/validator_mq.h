@@ -14,12 +14,13 @@
  * Represents a single message sent via validator_mq
  */
 typedef struct validator_mq_msg{
-    bool start;
-    bool halt;
-    bool finished;
-    bool accepted;
-    pid_t tester_pid;
-    char word[WORD_LEN_MAX];
+    bool start; /// request to start word validation
+    bool halt; /// request to halt validator
+    bool completed; /// request flag meaning no more words from tester which sent it
+    bool finish; /// request to finish validation
+    bool accepted; /// request flag meaning word in request is valid
+    pid_t tester_pid; /// tester that sent word in request
+    char word[WORD_LEN_MAX+1]; /// word ended with '\0'
 } validator_mq_msg;
 
 
@@ -36,14 +37,14 @@ extern mqd_t validator_mq_start(bool server, bool *err);
  * @param validator_mq
  * @param start
  * @param halt
- * @param finished
+ * @param finish
  * @param accepted
  * @param tester_pid
  * @param word
  * @param err
  */
-extern void validator_mq_send(mqd_t validator_mq, bool start, bool halt, bool finished, bool accepted, pid_t tester_pid,
-                              const char *word, bool *err);
+extern void validator_mq_send(mqd_t validator_mq, bool start, bool halt, bool completed, bool finish, bool accepted,
+                              pid_t tester_pid, const char *word, bool *err);
 
 /**
  * Blocking.

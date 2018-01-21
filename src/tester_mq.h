@@ -20,10 +20,11 @@
  * Represents a single message sent via tester_mq
  */
 typedef struct tester_mq_msg{
-    bool completed;
-    bool ignored;
-    bool accepted;
-    char word[WORD_LEN_MAX];
+    bool completed; /// message flag menanig there will be no more requests from validator to this mq
+    size_t total_processed; /// if completed flag is set to true, contains total number of words tester should have received
+    bool ignored; /// message flag meaning that word in a message was ignored by validator
+    bool accepted; /// message flag meaning word was accepted by automaton in a validator
+    char word[WORD_LEN_MAX+1]; /// word ended with '\0'
 } tester_mq_msg;
 
 
@@ -55,11 +56,13 @@ extern mqd_t tester_mq_start(bool server, const char *tester_mq_name, bool *err)
  * @param tester_mq
  * @param word
  * @param completed
+ * @param total_processed
  * @param ignored
  * @param accepted
  * @param err
  */
-extern void tester_mq_send(mqd_t tester_mq, const char *word, bool completed, bool ignored, bool accepted, bool *err);
+extern void tester_mq_send(mqd_t tester_mq, const char *word, bool completed, size_t total_processed, bool ignored, bool accepted,
+                           bool *err);
 
 /**
  * Blocking.

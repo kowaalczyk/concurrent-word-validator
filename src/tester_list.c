@@ -20,23 +20,26 @@ tester_list_t *tester_list_create(bool *err) {
     return guard;
 }
 
-void tester_list_emplace(tester_list_t *list, pid_t pid, size_t rcd, size_t acc, int word_bal, bool *err) {
+tester_t * tester_list_emplace(tester_list_t *list, pid_t pid, size_t rcd, size_t acc, int word_bal, bool completed, bool *err) {
     TESTER_LIST_ASSERT_OK;
 
     tester_list_t *new_first = TESTER_LIST_ALLOC;
-    VOID_FAIL_IF(new_first == NULL);
+    PTR_FAIL_IF(new_first == NULL);
 
     tester_t *new_tester = (tester_t*)malloc(sizeof(tester_t));
-    VOID_FAIL_IF(new_tester == NULL);
+    PTR_FAIL_IF(new_tester == NULL);
     new_tester->pid = pid;
     new_tester->rcd = rcd;
     new_tester->acc = acc;
     new_tester->word_bal = word_bal;
+    new_tester->completed = completed;
 
     tester_list_t * old_first = list->next;
     new_first->this = new_tester;
     new_first->next = old_first;
     list->next = new_first;
+
+    return new_first->this;
 }
 
 tester_t *tester_list_find(tester_list_t *list, pid_t pid) {
