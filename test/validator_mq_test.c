@@ -47,25 +47,25 @@ void sender() {
     test_log("SENDER: created mq");
 
     test_log("SENDER: sending START...");
-    validator_mq_send(validator_mq, true, false, false, false, getpid(),"start", &err);
+    validator_mq_send(validator_mq, true, false, 0, false, false, getpid(), "start", &err);
     HANDLE_ERR(err_sender);
     test_log("SENDER: sent START");
     sleep(send_delay_in_seconds);
 
     test_log("SENDER: sending HALT...");
-    validator_mq_send(validator_mq, false, true, false, false, getpid(),"halt", &err);
+    validator_mq_send(validator_mq, false, true, 0, false, false, getpid(), "halt", &err);
     HANDLE_ERR(err_sender);
     test_log("SENDER: sent HALT");
     sleep(send_delay_in_seconds);
 
     test_log("SENDER: sending FINISHED...");
-    validator_mq_send(validator_mq, false, false, true, false, getpid(),"finished", &err);
+    validator_mq_send(validator_mq, false, false, 0, true, false, getpid(), "finish", &err);
     HANDLE_ERR(err_sender);
     test_log("SENDER: sent FINISHED");
     sleep(send_delay_in_seconds);
 
     test_log("SENDER: sending ACCEPTED...");
-    validator_mq_send(validator_mq, false, false, false, true, getpid(),"accepted", &err);
+    validator_mq_send(validator_mq, false, false, 0, false, true, getpid(), "accepted", &err);
     HANDLE_ERR(err_sender);
     test_log("SENDER: sent ACCEPTED");
     sleep(send_delay_in_seconds);
@@ -73,7 +73,7 @@ void sender() {
     test_log("SENDER: finishing...");
     validator_mq_finish(false, validator_mq, &err);
     HANDLE_ERR(err_sender);
-    test_log("SENDER: finished");
+    test_log("SENDER: finish");
 }
 
 pid_t async_sender() {
@@ -92,7 +92,7 @@ pid_t async_sender() {
     }
 }
 
-// message order: start, halt, finished, accepted
+// message order: start, halt, finish, accepted
 int main() {
     bool err = false;
 
@@ -118,7 +118,7 @@ int main() {
                 assert(msg.halt);
                 break;
             case 1:
-                assert(msg.finished);
+                assert(msg.finish);
                 break;
             case 0:
                 assert(msg.accepted);
@@ -137,7 +137,7 @@ int main() {
     test_log("RECEIVER: finishing...");
     validator_mq_finish(true, validator_mq, &err);
     HANDLE_ERR(err_receiver);
-    test_log("RECEIVER: finished");
+    test_log("RECEIVER: finish");
 
     wait(NULL); // wait for sender
     return -errno;

@@ -258,17 +258,17 @@ int main() {
         validator_mq_receive(validator_mq, &validator_msg, &err);
         HANDLE_ERR(notify_parent);
 
-        // process request
+        // process request TODO: Add processing of complete signal from the tester
         if(validator_msg.halt) {
             tester_t * tester = tester_list_find(tester_data, validator_msg.tester_pid);
             if(!tester) {
-                tester_list_emplace(tester_data, validator_msg.tester_pid, 0, 0, 0, &err);
+                tester_list_emplace(tester_data, validator_msg.tester_pid, 0, 0, 0, NULL, &err);
                 HANDLE_ERR(notify_parent);
             }
             halt_flag_raised = true;
             // TODO: Notify known testers
 
-        } else if(validator_msg.finished) {
+        } else if(validator_msg.finish) {
             // Update local logs and forward response TODO: Function
             tester_t * tester = tester_list_find(tester_data, validator_msg.tester_pid);
             assert(tester != NULL);
@@ -289,13 +289,13 @@ int main() {
                 tester->word_bal++;
                 tester->rcd++;
             } else {
-                tester_list_emplace(tester_data, validator_msg.tester_pid, 1, 0, 1, &err);
+                tester_list_emplace(tester_data, validator_msg.tester_pid, 1, 0, 1, NULL, &err);
                 HANDLE_ERR(notify_parent);
             }
             // prepare validator message
             validator_msg.start = false;
             validator_msg.halt = false;
-            validator_msg.finished = true;
+            validator_msg.finish = true;
             validator_msg.accepted = false;
 
             int pipe_dsc[2];
@@ -317,7 +317,7 @@ int main() {
         HANDLE_ERR_DECREMENT_CONTINUE(await_runs);
 
         // process request
-        if(validator_msg.finished) {
+        if(validator_msg.finish) {
             // Update local logs and forward response TODO: Function
             tester_t * tester = tester_list_find(tester_data, validator_msg.tester_pid);
             assert(tester != NULL);
@@ -343,7 +343,7 @@ int main() {
                     async_reply_ignore(tester, &validator_msg);
                 }
             } else {
-                tester_list_emplace(tester_data, validator_msg.tester_pid, 1, 0, 0, &err);
+                tester_list_emplace(tester_data, validator_msg.tester_pid, 1, 0, 0, NULL, &err);
                 HANDLE_ERR(notify_parent);
                 async_reply_ignore(tester, &validator_msg);
             }

@@ -65,7 +65,7 @@ void sender(const char * mq_name) {
     test_log("SENDER: finishing...");
     tester_mq_finish(false, tester_mq, NULL, &err);
     HANDLE_ERR(err_sender);
-    test_log("SENDER: finished");
+    test_log("SENDER: finish");
 }
 
 void async_sender(const char * mq_name) {
@@ -127,7 +127,7 @@ int main() {
     test_log("RECEIVER: finishing...");
     tester_mq_finish(true, tester_mq, tester_mq_name, &err);
     HANDLE_ERR(err_receiver);
-    test_log("RECEIVER: finished");
+    test_log("RECEIVER: finish");
 
     wait(NULL); // wait for sender
     return -errno;

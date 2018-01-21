@@ -182,7 +182,7 @@ void read_and_send(bool *err) {
         bool halt = !start;
 
         log_formatted("%d SND: %s", getpid(), buffer);
-        validator_mq_send(validator_mq, start, halt, false, false, main_pid, buffer, err);
+        validator_mq_send(validator_mq, start, halt, 0, false, false, main_pid, buffer, err);
         VOID_FAIL_IF(*err); // pass error further
 
         tmp_err = kill(main_pid, SIG_SNT_SUCCESS);
