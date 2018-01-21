@@ -75,7 +75,7 @@ ssize_t validator_mq_receive(mqd_t validator_mq, validator_mq_msg *msg, bool *er
 
     char buff[buffsize];
     ssize_t request_ret = mq_receive(validator_mq, buff, buffsize, NULL);
-    INT_FAIL_IF(request_ret == 0);
+    INT_FAIL_IF(request_ret <= 0);
 
     memcpy(msg, buff, sizeof(validator_mq_msg));
     return request_ret;
