@@ -73,7 +73,7 @@ bool accept_rec(const automaton *a, const char *word, const char *state_list) {
         // need to accept_rec any of following states
         int i;
         for(i=0; i<following_states_length; i++) {
-            char state_list_extended[WORD_LEN_MAX]; // states list for given word is equal its length
+            char state_list_extended[WORD_LEN_MAX];
             strcpy(state_list_extended, state_list);
             size_t fs_len = strlen(state_list_extended);
             // append one of possible following states to current state_list
@@ -92,7 +92,7 @@ bool accept_rec(const automaton *a, const char *word, const char *state_list) {
     assert(is_universal(a, state_list[depth]));
     int i;
     for(i=0; i<following_states_length; i++) {
-        char state_list_extended[WORD_LEN_MAX]; // states list for given word is equal its length
+        char state_list_extended[WORD_LEN_MAX];
         strcpy(state_list_extended, state_list);
         size_t fs_len = strlen(state_list_extended);
         // append one of possible following states to current state_list
@@ -128,7 +128,7 @@ int main() {
     validator_mq_msg prepared_msg;
 
     validator_mq = validator_mq_start(false, &err);
-    HANDLE_ERR_EXIT_ERRNO_WITH_MSG("RUN: Failed to open validator mq");
+    HANDLE_ERR_EXIT_WITH_MSG("RUN: Failed to open validator mq");
 
     // TODO: Function
     // receive automaton via pipe
@@ -148,10 +148,10 @@ int main() {
 
     // send completed message back to the validator
     validator_mq_send_msg(validator_mq, &prepared_msg, &err);
-    HANDLE_ERR_EXIT_ERRNO_WITH_MSG("RUN: Failed to send message to validator mq");
+    HANDLE_ERR_EXIT_WITH_MSG("RUN: Failed to send message to validator mq");
 
     // clean up
     validator_mq_finish(false, validator_mq, &err);
-    HANDLE_ERR_EXIT_ERRNO_WITH_MSG("RUN: Failed to close validator mq");
+    HANDLE_ERR_EXIT_WITH_MSG("RUN: Failed to close validator mq");
     return 0;
 }

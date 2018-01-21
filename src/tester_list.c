@@ -58,7 +58,7 @@ void tester_list_print_log(const tester_list_t *list) {
     tester_list_t *iter = list->next;
     while(iter != NULL) {
         if(iter->this != NULL) {
-            printf("PID: %d\nRcd: %zu\n Acc: %zu\n", iter->this->pid, iter->this->rcd, iter->this->acc);
+            printf("PID: %d\nRcd: %zu\nAcc: %zu\n", iter->this->pid, iter->this->rcd, iter->this->acc);
         }
         iter = iter->next;
     }

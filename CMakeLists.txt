@@ -72,4 +72,9 @@ target_link_libraries(pipe_cpy_test_child_2 err)
 add_executable(pipe_cpy_test_2 test/pipe_cpy_test_2.c)
 target_link_libraries(pipe_cpy_test_2 err)
 
+add_executable(exec_wait_return_test test/exec_wait_return_test.c)
+
+add_executable(async_func_sig_return_test test/async_func_sig_return_test.c)
+target_link_libraries(async_func_sig_return_test config)
+
 install(TARGETS DESTINATION .)

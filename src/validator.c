@@ -34,7 +34,7 @@ void raise_halt_flag() {
  * Kills all known processes and exits the current process.
  */
 void kill_all_exit() {
-    exit(-1); // TODO
+    exit(EXIT_FAILURE); // TODO
 }
 
 /**
@@ -51,7 +51,7 @@ void async_create_run(int *pipe_dsc) {
     ssize_t tmp_err;
     switch (fork()) {
         case -1:
-            exit(-1); // TODO: Error handling
+            exit(EXIT_FAILURE); // TODO: Error handling
         case 0:
             validator_mq_finish(false, validator_mq, &err);
             HANDLE_ERR(kill_all_exit);
@@ -59,24 +59,24 @@ void async_create_run(int *pipe_dsc) {
             // pipe to child input descriptor
             tmp_err = close(0);
             if(tmp_err) {
-                exit(-1); // TODO: Error handling
+                exit(EXIT_FAILURE); // TODO: Error handling
             }
             tmp_err = dup(pipe_dsc[0]);
             if(tmp_err) {
-                exit(-1); // TODO: Error handling
+                exit(EXIT_FAILURE); // TODO: Error handling
             }
             tmp_err = close(pipe_dsc[0]);
             if(tmp_err) {
-                exit(-1); // TODO: Error handling
+                exit(EXIT_FAILURE); // TODO: Error handling
             }
             tmp_err = close(pipe_dsc[1]);
             if(tmp_err) {
-                exit(-1); // TODO: Error handling
+                exit(EXIT_FAILURE); // TODO: Error handling
             }
             // exec child
             char * child_argv[] = {"run", NULL};
             execvp("./run", child_argv);
-            exit(-1); // TODO: Error handling
+            exit(EXIT_FAILURE); // TODO: Error handling
         default:
             await_forks++;
             await_runs++;
@@ -100,7 +100,7 @@ void async_pipe_data(int *pipe_dsc, const automaton *a, const validator_mq_msg *
     ssize_t tmp_err;
     switch (fork()) {
         case -1:
-            exit(-1); // TODO: Error handling
+            exit(EXIT_FAILURE); // TODO: Error handling
         case 0:
             validator_mq_finish(false, validator_mq, &err);
             HANDLE_ERR(kill_all_exit);
@@ -117,17 +117,21 @@ void async_pipe_data(int *pipe_dsc, const automaton *a, const validator_mq_msg *
             }
             // close pipe and exit
             tmp_err = close(pipe_dsc[1]);
-            if(tmp_err != sizeof(validator_mq_msg)) {
+            if(tmp_err != 0) {
                 kill_all_exit(); // TODO: Error handling
             }
-            exit(0);
+            exit(EXIT_SUCCESS);
         default:
             await_forks++;
     }
 }
 
-// TODO: Send complete to tester iff halt flag raised and tester.word_bal is 0
-
+/**
+ * Asynchronous.
+ * Processes request from run and sends it to specified tester's mq.
+ * @param tester
+ * @param request_msg
+ */
 void async_forward_response(const tester_t *tester, const validator_mq_msg *request_msg) {
     bool err = false;
     char tester_mq_name[TESTER_MQ_NAME_LEN];
@@ -135,7 +139,7 @@ void async_forward_response(const tester_t *tester, const validator_mq_msg *requ
     bool completed = (halt_flag_raised && tester->word_bal == 0);
     switch (fork()) {
         case -1:
-            exit(-1); // TODO: Error handling
+            exit(EXIT_FAILURE); // TODO: Error handling
         case 0:
             validator_mq_finish(false, validator_mq, &err);
             HANDLE_ERR(kill_all_exit);
@@ -149,7 +153,8 @@ void async_forward_response(const tester_t *tester, const validator_mq_msg *requ
 
             tester_mq_finish(false, tester_mq, NULL, &err);
             HANDLE_ERR(kill_all_exit);
-            exit(0);
+            // TODO: kill return
+            exit(EXIT_SUCCESS);
         default:
             await_forks++;
             await_runs--;
@@ -157,6 +162,12 @@ void async_forward_response(const tester_t *tester, const validator_mq_msg *requ
     }
 }
 
+/**
+ * Asynchronous.
+ * Sends ignored flag, meaning that the word will never be processed, to the tester.
+ * @param tester
+ * @param request_msg
+ */
 void async_reply_ignore(const tester_t *tester, const validator_mq_msg *request_msg) {
     bool err = false;
     char tester_mq_name[TESTER_MQ_NAME_LEN];
@@ -164,7 +175,7 @@ void async_reply_ignore(const tester_t *tester, const validator_mq_msg *request_
     bool completed = (halt_flag_raised && tester->word_bal == 0);
     switch (fork()) {
         case -1:
-            exit(-1); // TODO: Error handling
+            exit(EXIT_FAILURE); // TODO: Error handling
         case 0:
             validator_mq_finish(false, validator_mq, &err);
             HANDLE_ERR(kill_all_exit);
@@ -178,7 +189,7 @@ void async_reply_ignore(const tester_t *tester, const validator_mq_msg *request_
 
             tester_mq_finish(false, tester_mq, NULL, &err);
             HANDLE_ERR(kill_all_exit);
-            exit(0);
+            exit(EXIT_SUCCESS);
         default:
             await_forks++;
             break;
@@ -194,7 +205,7 @@ int main() {
     HANDLE_ERR_EXIT_WITH_MSG("VALIDATOR: Could not create tester list");
     automaton a;
     load_automaton(&a, &err);
-    HANDLE_ERR_EXIT_ERRNO_WITH_MSG("VALIDATOR: Failed to load automaton");
+    HANDLE_ERR_EXIT_WITH_MSG("VALIDATOR: Failed to load automaton");
 
     // setup queues
     validator_mq = validator_mq_start(true, &err);
@@ -207,13 +218,10 @@ int main() {
         HANDLE_ERR(raise_halt_flag);
 
         // process request
-        comm_summary.rcd++;
         if(validator_msg.halt) {
             tester_t * tester = tester_list_find(tester_data, validator_msg.tester_pid);
-            if(tester) {
-                tester->rcd++;
-            } else {
-                tester_list_emplace(tester_data, validator_msg.tester_pid, 1, 0, 0, &err);
+            if(!tester) {
+                tester_list_emplace(tester_data, validator_msg.tester_pid, 0, 0, 0, &err);
                 HANDLE_ERR(raise_halt_flag);
             }
             halt_flag_raised = true;
@@ -233,6 +241,7 @@ int main() {
         } else if(validator_msg.start) {
             // TODO: Function
             // update local logs
+            comm_summary.rcd++;
             tester_t * tester = tester_list_find(tester_data, validator_msg.tester_pid);
             if(tester) {
                 tester->word_bal++;
@@ -260,13 +269,12 @@ int main() {
             // TODO: Consider handling this
         }
     }
-    // after halt flag is raised, wait for runs to complete and halt other testers if necessary
+    // after halt flag is raised, wait for runs to complete and ignore other testers if necessary
     while(await_runs) {
         validator_mq_receive(validator_mq, &validator_msg, &err);
         HANDLE_ERR_DECREMENT_CONTINUE(await_runs);
 
         // process request
-        comm_summary.rcd++;
         if(validator_msg.finished) {
             // Update local logs and forward response TODO: Function
             tester_t * tester = tester_list_find(tester_data, validator_msg.tester_pid);
@@ -280,6 +288,9 @@ int main() {
 
         } else {
             // only happens when one tester send halt and other tester completed request before receiving signal
+            if(validator_msg.start) {
+                comm_summary.rcd++;
+            }
             tester_t * tester = tester_list_find(tester_data, validator_msg.tester_pid);
             if(tester) {
                 tester->rcd += 1;
@@ -295,14 +306,12 @@ int main() {
     validator_mq_finish(true, validator_mq, &err);
     HANDLE_ERR(kill_all_exit);
     while(await_forks) {
-        pid_t tmp_pid;
-        int wait_ret;
+        pid_t tmp_pid = 0;
+        int wait_ret = EXIT_SUCCESS;
         tmp_pid = wait(&wait_ret);
-        if(tmp_pid == -1) {
+        if(tmp_pid == -1 || wait_ret != EXIT_SUCCESS) {
+            log_formatted("Unexpected error in one of child processes: %d, %s", errno, strerror(errno));
             kill_all_exit();
-        }
-        if(wait_ret == 0) {
-            comm_summary.snt++; // TODO: Count only actual sends
         }
         await_forks--;
     }
