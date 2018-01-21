@@ -14,7 +14,7 @@
 #define SIG_SNT_SUCCESS (SIGRTMIN+1)
 
 // TODO: Organize variables
-static bool err;
+static bool err = false;
 char tester_mq_name[TESTER_MQ_NAME_LEN];
 static size_t await_responses = 0;
 static size_t await_forks = 0;
@@ -106,12 +106,6 @@ void async_send_request_to_validator(mqd_t validator_mq, const char * word) {
     }
 }
 
-void initial_setup() {
-    err = false;
-    main_pid = getpid();
-    printf("PID: %d\n", main_pid);
-}
-
 void setup_sig_handlers(bool *err) {
     int tmp_err;
     tmp_err = sigemptyset(&snt_success_action.sa_mask);
@@ -148,7 +142,10 @@ void collect_forks(bool *err) {
 }
 
 int main() {
-    initial_setup();
+    assert(err == false);
+    // initial setup
+    main_pid = getpid();
+    printf("PID: %d\n", main_pid);
     setup_sig_handlers(&err);
     HANDLE_ERR_EXIT_WITH_MSG("TESTER: Failed to set up signal handlers");
 
