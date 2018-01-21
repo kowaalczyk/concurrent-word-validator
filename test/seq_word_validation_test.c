@@ -146,7 +146,7 @@ void run_test() {
         assert(expected_ans==true || expected_ans == false);
 
         // testing if validator mq holds enough data
-        validator_mq_msg test_msg = {false, false, true, false, getpid(), ""};
+        validator_mq_msg test_msg = {false, false, false, true, false, getpid(), ""};
         memcpy(test_msg.word, buffer, strlen(buffer));
         printf("Validating processed word: %s\n", test_msg.word);
 
