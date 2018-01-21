@@ -65,12 +65,11 @@ void tester_mq_finish(bool unlink, mqd_t tester_mq, const char *tester_mq_name, 
     int tmp_err = 0;
 
     tmp_err = mq_close(tester_mq);
-    VOID_FAIL_IF(tmp_err == -1);
-
     if(unlink) {
+        // intentionally performed before error checking to efficiently free resources in case of error
         tmp_err = mq_unlink(tester_mq_name);
-        VOID_FAIL_IF(tmp_err == -1);
     }
+    VOID_FAIL_IF(tmp_err == -1);
 }
 
 void tester_mq_send(mqd_t tester_mq, const char *word, bool completed, bool ignored, bool accepted, bool *err) {

@@ -86,10 +86,9 @@ void validator_mq_finish(bool unlink, mqd_t validator_mq, bool *err) {
     int tmp_err = 0;
 
     tmp_err = mq_close(validator_mq);
-    VOID_FAIL_IF(tmp_err == -1);
-
     if(unlink) {
+        // intentionally performed before error checking to efficiently free resources in case of error
         tmp_err = mq_unlink(VALIDATOR_MQ_NAME);
-        VOID_FAIL_IF(tmp_err == -1);
     }
+    VOID_FAIL_IF(tmp_err == -1);
 }

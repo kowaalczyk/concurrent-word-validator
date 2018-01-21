@@ -33,6 +33,8 @@ extern void log_formatted(const char *fmt, ...);
 #define VOID_FAIL_IF(x) do {if(x) {if(err != NULL) *err = true; log_formatted("Fail in %s, function: %s", __FILE__, __func__); return;}} while(false)
 #define PTR_FAIL_IF(x) do {if(x) {if(err != NULL) *err = true; log_formatted("Fail in %s, function: %s", __FILE__, __func__); return NULL;}} while(false)
 #define HANDLE_ERR(err_handler) do {if(err) {(err_handler)();}} while(false)
+#define HANDLE_ERR_PRINT_MSG(message) do {if(err) {fprintf(stderr, "%s - error number: %d (%s)\n", message, errno, strerror(errno));}} while(false)
+#define HANDLE_ERR_WITH_MSG(err_handler, message) do {if(err) {fprintf(stderr, "%s - error number: %d (%s)\n", message, errno, strerror(errno)); (err_handler)();}} while(false)
 #define HANDLE_ERR_EXIT_WITH_MSG(message) do {if(err) {fprintf(stderr, "%s - error number: %d (%s)\n", message, errno, strerror(errno)); exit(EXIT_FAILURE);}} while(false)
 #define HANDLE_ERR_DECREMENT_BREAK(to_decrement) do {if(err) (to_decrement)--; break;} while(false)
 #define HANDLE_ERR_DECREMENT_CONTINUE(to_decrement) do {if(err) (to_decrement)--; continue;} while(false)
