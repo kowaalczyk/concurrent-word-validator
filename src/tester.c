@@ -60,6 +60,7 @@ void sig_snt_success_handler(int sig) {
 void sig_rcd_complete_handler(int sig) {
     assert(sender_pid == getpid());
 
+    log_formatted("Sender received complete signal");
     validator_mq_finish(false, validator_mq, &err); // fail silently
     exit(EXIT_SUCCESS);
 }
@@ -183,7 +184,7 @@ void read_and_send(bool *err) {
         start = (buffer[0]!='!');
         halt = !start;
 
-        log_formatted("%d SND: %s", getpid(), buffer);
+        log_formatted("%d SND: %s, start=%d, halt=%d", getpid(), buffer, start, halt);
         validator_mq_send(validator_mq, start, halt, halt, false, false, main_pid, buffer, err); // halt => completed
         VOID_FAIL_IF(*err); // pass error further
 
@@ -258,8 +259,10 @@ int main() {
         tester_mq_receive(tester_mq, &tester_msg, &err);
         HANDLE_ERR_WITH_MSG(err_sig_other_and_exit, "Failed to receive message from tester mq");
 
+        log_formatted("%d RCD: %s", getpid(), tester_msg.word);
         process_response(&tester_msg);
         if(tester_msg.completed) {
+            log_formatted("%d RCD: COMPLETED", getpid());
             kill(sender_pid, SIG_RCD_COMPLETE);
             // completed is received exactly once (unless an error occured), and no following messages are sent
             break;
