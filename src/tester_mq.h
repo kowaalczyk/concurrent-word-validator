@@ -20,10 +20,10 @@
  * Represents a single message sent via tester_mq
  */
 typedef struct tester_mq_msg{
-    bool completed;
-    bool ignored;
-    bool accepted;
-    char word[WORD_LEN_MAX];
+    bool completed; /// message flag menanig there will be no more requests from validator to this mq
+    bool ignored; /// message flag meaning that word in a message was ignored by validator
+    bool accepted; /// message flag meaning word was accepted by automaton in a validator
+    char word[WORD_LEN_MAX+1]; /// word ended with '\0'
 } tester_mq_msg;
 
 
