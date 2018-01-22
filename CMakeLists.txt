@@ -38,7 +38,7 @@ target_link_libraries(tester_mq config rt)
 
 # release executables
 add_executable(validator src/validator.c)
-target_link_libraries(validator config automaton validator_mq tester_mq tester_list)
+target_link_libraries(validator config automaton validator_mq tester_mq tester_list pid_list)
 
 add_executable(tester src/tester.c)
 target_link_libraries(tester config validator_mq tester_mq)
