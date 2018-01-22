@@ -11,9 +11,13 @@
 #include "validator_mq.h"
 #include "tester_mq.h"
 
-
+#ifndef SIG_SNT_SUCCESS
 #define SIG_SNT_SUCCESS (SIGRTMIN+1)
+#endif /* SIG_SNT_SUCCESS */
+
+#ifndef SIG_RCD_COMPLETE
 #define SIG_RCD_COMPLETE (SIGRTMIN+2)
+#endif /* SIG_RCD_COMPLETE */
 
 static bool err = false;
 static bool await_sender = false;

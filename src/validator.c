@@ -16,8 +16,9 @@
 #include "tester_list.h"
 #include "pid_list.h"
 
-
+#ifndef SIG_SNT_SUCCESS
 #define SIG_SNT_SUCCESS (SIGRTMIN+1)
+#endif /* SIG_SNT_SUCCESS */
 
 static bool err = false;
 static bool halt_flag_raised = false;
@@ -53,6 +54,8 @@ static void kill_all_exit() {
  * @param sig
  */
 static void sig_err_handler(int sig) {
+    fprintf(stderr, "Received terminal signal, attempting to clean as much as possible\n");
+
     bool ignored_err = false;
     if(main_pid == getpid()) {
         for(tester_list_t *iter = tester_data; iter != NULL; iter = iter->next) {
@@ -144,24 +147,24 @@ static void async_create_run(int *pipe_dsc) {
             // pipe to child input descriptor
             tmp_err = close(0);
             if(tmp_err) {
-                exit(EXIT_FAILURE); // TODO: Error handling
+                exit(EXIT_FAILURE);
             }
             tmp_err = dup(pipe_dsc[0]);
             if(tmp_err) {
-                exit(EXIT_FAILURE); // TODO: Error handling
+                exit(EXIT_FAILURE);
             }
             tmp_err = close(pipe_dsc[0]);
             if(tmp_err) {
-                exit(EXIT_FAILURE); // TODO: Error handling
+                exit(EXIT_FAILURE);
             }
             tmp_err = close(pipe_dsc[1]);
             if(tmp_err) {
-                exit(EXIT_FAILURE); // TODO: Error handling
+                exit(EXIT_FAILURE);
             }
             // exec child
             char * child_argv[] = {"run", NULL};
             execvp("./run", child_argv);
-            exit(EXIT_FAILURE); // TODO: Error handling
+            exit(EXIT_FAILURE);
         default:
             await_forks++;
             await_runs++;
@@ -198,17 +201,17 @@ static void async_pipe_data(int *pipe_dsc, const automaton *a, const validator_m
             // send automaton
             tmp_err = write(pipe_dsc[1], a, sizeof(automaton));
             if(tmp_err != sizeof(automaton)) {
-                kill_all_exit(); // TODO: Error handling
+                kill_all_exit();
             }
             // send prepared message
             tmp_err = write(pipe_dsc[1], prepared_msg, sizeof(validator_mq_msg));
             if(tmp_err != sizeof(validator_mq_msg)) {
-                kill_all_exit(); // TODO: Error handling
+                kill_all_exit();
             }
             // close pipe and exit
             tmp_err = close(pipe_dsc[1]);
             if(tmp_err == -1) {
-                kill_all_exit(); // TODO: Error handling
+                kill_all_exit();
             }
             exit(EXIT_SUCCESS);
         default:
