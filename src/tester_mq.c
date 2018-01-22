@@ -76,7 +76,9 @@ void tester_mq_send(mqd_t tester_mq, const char *word, bool completed, size_t to
     assert(err != NULL);
 
     int tmp_err = 0;
-    tester_mq_msg msg = {completed, total_processed, ignored, accepted, ""};
+    tester_mq_msg msg;
+    memset(&msg, 0, sizeof(tester_mq_msg)); // to prevent valgrind errors
+    msg = {completed, total_processed, ignored, accepted, ""};
     if(word != NULL) {
         memcpy(msg.word, word, strlen(word));
     }
