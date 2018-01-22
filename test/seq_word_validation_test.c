@@ -83,7 +83,6 @@ bool accept_rec(const automaton *a, const char *word, const char *state_list) {
             state_list_extended[fs_len+1] = '\0';
             assert(strlen(state_list_extended) == strlen(state_list)+1);
 
-            // TODO: fork()
             if(accept_rec(a, word, state_list_extended)) {
                 return true;
             }
@@ -102,7 +101,6 @@ bool accept_rec(const automaton *a, const char *word, const char *state_list) {
         state_list_extended[fs_len+1] = '\0';
         assert(strlen(state_list_extended) == strlen(state_list)+1);
 
-        // TODO: fork()
         if(!accept_rec(a, word, state_list_extended)) {
             return false;
         }

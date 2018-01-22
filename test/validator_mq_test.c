@@ -1,7 +1,6 @@
 //
 // Created by kowal on 16.01.18.
 //
-// TODO
 
 #include <stdbool.h>
 #include <stdio.h>

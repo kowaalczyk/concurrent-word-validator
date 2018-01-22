@@ -56,7 +56,7 @@ const char * get_following_states(const automaton * a, const char state, const c
     assert(word_letter >= 'a');
     assert(word_letter <= 'z');
 
-    // TODO: Might need to normalize the alphabet to start from 0
+    // Need to normalize the alphabet to start from 0
     return a->transitions[state*ALPHABET_MAX_SIZE + word_letter];
 }
 
@@ -74,7 +74,6 @@ bool accept_rec(const automaton *a, const char *word, const char *state) {
         // need to accept_rec any of following states
         int i;
         for(i=0; i<following_states_length; i++) {
-            // TODO: Unit test this (!!!)
             char following_state[STR_LEN_MAX];
             strcpy(following_state, state);
             strcat(following_state, &following_states[i]);
@@ -90,7 +89,6 @@ bool accept_rec(const automaton *a, const char *word, const char *state) {
     // need to accept_rec all of following states
     int i;
     for(i=0; i<following_states_length; i++) {
-        // TODO: Unit test this (!!!)
         char following_state[STR_LEN_MAX];
         strcpy(following_state, state);
         strcat(following_state, &following_states[i]);

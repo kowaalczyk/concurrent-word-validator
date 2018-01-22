@@ -14,7 +14,6 @@
 #include "../src/config.h"
 
 // Adding sleep delay makes wait in parent break (because sleep is signal-implemented, i guess) ~50% of times.
-// TODO: Make sure wait works correctly in production applications!!!
 //#define DELAY 3
 #define N_FORKS 1000
 #define NOTIFY_SIG (SIGRTMIN+1)

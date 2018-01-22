@@ -59,7 +59,7 @@ int main() {
     );
 
     char ans_buff[5];
-    tmp2 = mq_receive(queue, ans_buff, 8193, NULL); // TODO: size buora odbioru większy niż domuślny wiadomości w kolejce
+    tmp2 = mq_receive(queue, ans_buff, 8193, NULL); // size must be bigger than max possible size (!!!)
     assert(tmp2 != -1);
 
     printf("%s\n", ans_buff);

@@ -214,9 +214,8 @@ int main(int argc, char * argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    // set validator pid to use in case of error
     sscanf(argv[1], "%d", &validator_pid);
-
-    // TODO: Use signals in error handling (if unable to send to validator, everything should die)
 
     bool err = false;
     ssize_t tmp_err;
