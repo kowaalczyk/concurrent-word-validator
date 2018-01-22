@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.8)
 
 # force release build when on a release branch
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE "Release")
 project(pw_validator)
 
 set(CMAKE_C_STANDARD 11)

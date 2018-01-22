@@ -200,6 +200,8 @@ static void async_spawn_sender() {
     switch (sender_pid = fork()) {
         case -1:
             HANDLE_ERR_EXIT_WITH_MSG("Error in fork");
+            break;
+
         case 0:
             // close tester mq
             tester_mq_finish(false, tester_mq, NULL, &err);

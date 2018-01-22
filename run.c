@@ -90,6 +90,7 @@ static bool accept_rec(const automaton *a, const char *word, const char *state_l
                 case -1:
                     err = true;
                     HANDLE_ERR_WITH_MSG(err_kill_validator_and_exit, "RUN: Failed to perform fork");
+                    break;
                 case 0:
                     // append one of possible following states to current state_list
                     state_list_extended[sle_len] = following_states[i];
@@ -146,6 +147,7 @@ static bool accept_rec(const automaton *a, const char *word, const char *state_l
             case -1:
                 err = true;
                 HANDLE_ERR_WITH_MSG(err_kill_validator_and_exit, "RUN: Failed to perform fork");
+                break;
             case 0:
                 // append one of possible following states to current state_list
                 state_list_extended[sle_len] = following_states[i];
