@@ -86,8 +86,6 @@ void load_automaton(automaton *ptr, bool *err) {
                 j = 0;
                 while(sscanf(input_buff, "%d %n", &c_int, &input_buff_offset) == 1) {
                     c_int += STR_STORAGE_VAL_OFFSET; // offsetting states in strings, see automaton struct documentation
-                    fprintf(stderr, "(%d * %zu) + %d = %zu : %d\n", state, (ptr->alphabet_size), letter, transition_pos, c_int); // TODO: Remove
-                    fflush(stderr); // TODO: Remove
                     ptr->transitions[transition_pos][j] = (char)(c_int);
                     j++;
                     input_buff += input_buff_offset;
