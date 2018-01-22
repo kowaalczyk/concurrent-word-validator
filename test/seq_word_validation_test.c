@@ -134,8 +134,9 @@ void run_test() {
     bool err = false;
     load_automaton(&a, &err);
 
-    char buffer[WORD_LEN_MAX+2]; // + '\n' and '\0'
+    char buffer[2*WORD_LEN_MAX]; // + '\n' and '\0'
     while(fgets(buffer, sizeof(buffer), stdin)) {
+        assert(strlen(buffer) < WORD_LEN_MAX +2);
         assert(buffer[strlen(buffer)-1] == '\n');
         buffer[strlen(buffer)-1] = '\0';
 

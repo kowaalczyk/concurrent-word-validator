@@ -4,7 +4,7 @@ project(pw_validator)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_FLAGS "-Wall -Werror")
 
-set(CMAKE_C_FLAGS_DEBUG "-O0 -g -DPW_ENABLE_LOGGING")
+set(CMAKE_C_FLAGS_DEBUG "-O0 -g")
 set(CMAKE_C_FLAGS_RELEASE  "-O3 -DNDEBUG")
 
 
