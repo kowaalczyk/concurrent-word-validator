@@ -132,8 +132,7 @@ static bool accept_rec(const automaton *a, const char *word, const char *state_l
         HANDLE_ERR_WITH_MSG(err_kill_validator_and_exit, "RUN: Unexpected error in wait");
         return ans;
     }
-    assert(is_universal(a, state_list[depth]));
-    // need to accept all of following states
+    // run is universal, need to accept all of following states
     if(following_states_length == 0) {
         return (depth < w_len);
     }

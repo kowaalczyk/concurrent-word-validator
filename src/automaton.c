@@ -57,7 +57,7 @@ void load_automaton(automaton *ptr, bool *err) {
                 for(j=0; j<f; j++) {
                     tmp_err = scanf("%d\n", &c_int);
                     VOID_FAIL_IF(tmp_err == EOF);
-                    assert(0 <= c_int && c_int < ptr->states_size);
+                    assert(0 <= c_int && c_int < (int)ptr->states_size);
 
                     c_int += STR_STORAGE_VAL_OFFSET;
                     ptr->acceptable_states[j] = (char) c_int;

@@ -127,7 +127,6 @@ int main() {
                 exit(-1);
                 break;
         }
-        assert(msg.tester_pid == child_pid);
         test_log("RECEIVER: received message:");
         test_log(msg.word);
         test_log("");
