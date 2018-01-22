@@ -51,7 +51,6 @@ void validator_mq_send(mqd_t validator_mq, bool start, bool halt, bool completed
                        pid_t tester_pid, const char *word, bool *err) {
     assert(err != NULL);
 
-    int tmp_err = 0;
     validator_mq_msg msg;
     memset(&msg, 0, sizeof(validator_mq_msg)); // to prevent valgrind errors
     msg = (validator_mq_msg){start, halt, completed, finish, accepted, tester_pid, ""};
@@ -59,14 +58,15 @@ void validator_mq_send(mqd_t validator_mq, bool start, bool halt, bool completed
         memcpy(msg.word, word, strlen(word));
     }
 
-    tmp_err = mq_send(validator_mq, (const char *)&msg, sizeof(validator_mq_msg), NORMAL_MQ_PRIORITY);
-    VOID_FAIL_IF(tmp_err == -1);
+    validator_mq_send_msg(validator_mq, &msg, err);
+    VOID_FAIL_IF(*err);
 }
 
-// TODO: Optimize memory usage: call this function from the other to prevent duplicating msg struct
 void validator_mq_send_msg(mqd_t validator_mq, const validator_mq_msg *msg, bool *err) {
-    validator_mq_send(validator_mq, msg->start, msg->halt, 0, msg->finish, msg->accepted, msg->tester_pid, msg->word,
-                      err);
+
+    int tmp_err = 0;
+    tmp_err = mq_send(validator_mq, (const char *)msg, sizeof(validator_mq_msg), NORMAL_MQ_PRIORITY);
+    VOID_FAIL_IF(tmp_err == -1);
 }
 
 ssize_t validator_mq_receive(mqd_t validator_mq, validator_mq_msg *msg, bool *err) {
