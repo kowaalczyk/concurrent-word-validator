@@ -43,8 +43,6 @@ static comm_sumary_t comm_summary = {0, 0, 0};
  * Kills all known processes and exits the current process.
  */
 static void kill_all_exit() {
-    assert(err == true);
-
     kill(main_pid, SIGTERM);
 }
 
@@ -266,7 +264,6 @@ static void async_send_to_tester(pid_t tester_pid, const char *word, bool comple
 
         default:
             await_forks++;
-            await_runs--;
             pid_list_emplace(children, child_pid, &err);
             break;
     }
@@ -372,6 +369,7 @@ static void handle_request_standard(tester_t *tester, validator_mq_msg *msg) {
         assert(!msg->start);
 
         // update logs
+        await_runs--;
         tester->word_bal--;
         if(msg->accepted) {
             comm_summary.acc++;
@@ -411,6 +409,7 @@ static void handle_request_only_finish(tester_t *tester, validator_mq_msg *msg) 
         assert(!msg->start);
 
         // update logs
+        await_runs--;
         tester->word_bal--;
         if(msg->accepted) {
             comm_summary.acc++;
@@ -477,13 +476,13 @@ int main() {
         tester_t *tester = tester_for_request(&validator_msg);
         handle_request_only_finish(tester, &validator_msg);
     }
-
     // clean up
+    collect_forks(&err);
+    HANDLE_ERR_WITH_MSG(kill_all_exit, "Failed to collect forks created for async tasks");
+
     validator_mq_finish(true, validator_mq, &err);
     HANDLE_ERR_WITH_MSG(kill_all_exit, "Failed to close validator MQ");
 
-    collect_forks(&err);
-    HANDLE_ERR_WITH_MSG(kill_all_exit, "Failed to collect forks created for async tasks");
     print_comm_summary(&comm_summary);
     tester_list_print_log(tester_data);
     tester_list_destroy(tester_data);
