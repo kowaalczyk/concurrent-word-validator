@@ -27,7 +27,7 @@ mqd_t validator_mq_start(bool server, bool *err) {
         struct mq_attr validator_mq_attrs;
         tmp_err = mq_getattr(queue, &validator_mq_attrs);
         INT_FAIL_IF(tmp_err == -1);
-        INT_FAIL_IF(validator_mq_attrs.mq_msgsize < sizeof(validator_mq_msg));
+        INT_FAIL_IF(validator_mq_attrs.mq_msgsize < (int)sizeof(validator_mq_msg));
     } else {
         queue = mq_open(VALIDATOR_MQ_NAME, O_WRONLY);
         INT_FAIL_IF(queue == -1);

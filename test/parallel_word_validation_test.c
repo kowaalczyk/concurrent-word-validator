@@ -16,14 +16,14 @@
 #include "../src/automaton.h"
 
 
-/// checks if given state is universal in a given automata
-static bool is_universal(const automaton * a, char state) {
-    assert(state >= 0 + STR_STORAGE_VAL_OFFSET);
-    assert(state < a->states_size + STR_STORAGE_VAL_OFFSET);
-
-    state -= STR_STORAGE_VAL_OFFSET;
-    return state < a->universal_states_size;
-}
+///// checks if given state is universal in a given automata
+//static bool is_universal(const automaton * a, char state) {
+//    assert(state >= 0 + STR_STORAGE_VAL_OFFSET);
+//    assert(state < a->states_size + STR_STORAGE_VAL_OFFSET);
+//
+//    state -= STR_STORAGE_VAL_OFFSET;
+//    return state < (int)a->universal_states_size;
+//}
 
 /// check if given state is existential in a given automata
 static bool is_existential(const automaton * a, char state) {
@@ -31,7 +31,7 @@ static bool is_existential(const automaton * a, char state) {
     assert(state < a->states_size + STR_STORAGE_VAL_OFFSET);
 
     state -= STR_STORAGE_VAL_OFFSET;
-    return state >= a->universal_states_size;
+    return state >= (int)a->universal_states_size;
 }
 
 /// iterates over acceptable states in automaton a, checking if the given state is acceptable, O(n)
@@ -41,7 +41,7 @@ static bool is_acceptable(const automaton * a, char state) {
 
     size_t acceptable_states_length = strlen(a->acceptable_states);
     int i;
-    for(i=0; i<acceptable_states_length; i++) {
+    for(i=0; i<(int)acceptable_states_length; i++) {
         if(a->acceptable_states[i] == state) {
             return true;
         }
@@ -87,7 +87,7 @@ static bool accept_rec(const automaton *a, const char *word, const char *state_l
         bool err = false;
         size_t await_forks = 0;
         int i;
-        for(i=0; i<following_states_length-1; i++) {
+        for(i=0; i<(int)following_states_length-1; i++) {
             switch (fork()) {
                 case -1:
                     err = true;
@@ -144,7 +144,7 @@ static bool accept_rec(const automaton *a, const char *word, const char *state_l
     bool err = false;
     size_t await_forks = 0;
     int i;
-    for(i=0; i<following_states_length-1; i++) {
+    for(i=0; i<(int)following_states_length-1; i++) {
         switch (fork()) {
             case -1:
                 err = true;
@@ -212,6 +212,7 @@ void run_test() {
     automaton a;
     size_t failed = 0;
     bool err = false;
+    void *tmp_err = 0;
     load_automaton(&a, &err);
 
     char buffer[2*WORD_LEN_MAX]; // + '\n' and '\0'
@@ -222,7 +223,8 @@ void run_test() {
 
         // load answer for loaded word
         char expected_ans_tmp[10];
-        fgets(expected_ans_tmp, 10, stdin);
+        tmp_err = fgets(expected_ans_tmp, 10, stdin);
+        err = (tmp_err == NULL);
         bool expected_ans = (bool)(expected_ans_tmp[0]-'0');
         assert(expected_ans==true || expected_ans == false);
 

@@ -39,7 +39,7 @@ mqd_t tester_mq_start(bool server, const char *tester_mq_name, bool *err) {
         struct mq_attr tester_mq_attrs;
         tmp_err = mq_getattr(queue, &tester_mq_attrs);
         INT_FAIL_IF(tmp_err == -1);
-        INT_FAIL_IF(tester_mq_attrs.mq_msgsize < sizeof(tester_mq_msg));
+        INT_FAIL_IF(tester_mq_attrs.mq_msgsize < (int)sizeof(tester_mq_msg));
     } else {
         queue = mq_open(tester_mq_name, O_WRONLY);
         INT_FAIL_IF(queue == -1);
