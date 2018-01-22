@@ -73,7 +73,7 @@ static bool accept_rec(const automaton *a, const char *word, const char *state_l
         // need to accept_rec any of following states
         int i;
         for(i=0; i<following_states_length; i++) {
-            char state_list_extended[WORD_LEN_MAX];
+            char state_list_extended[WORD_LEN_MAX+2];
             strcpy(state_list_extended, state_list);
             size_t fs_len = strlen(state_list_extended);
             // append one of possible following states to current state_list
@@ -92,7 +92,7 @@ static bool accept_rec(const automaton *a, const char *word, const char *state_l
     assert(is_universal(a, state_list[depth]));
     int i;
     for(i=0; i<following_states_length; i++) {
-        char state_list_extended[WORD_LEN_MAX];
+        char state_list_extended[WORD_LEN_MAX+2];
         strcpy(state_list_extended, state_list);
         size_t fs_len = strlen(state_list_extended);
         // append one of possible following states to current state_list
@@ -111,7 +111,7 @@ static bool accept_rec(const automaton *a, const char *word, const char *state_l
 
 /// checks if given automaton accepts given word
 static bool accept(const automaton * a, const char * word) {
-    char state_list[WORD_LEN_MAX]; // states list for given word is equal its length
+    char state_list[WORD_LEN_MAX+2]; // states list for given word is equal its length
     state_list[0] = a->starting_state;
     state_list[1] = '\0';
     return accept_rec(a, word, state_list);
