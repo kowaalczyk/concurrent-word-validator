@@ -23,9 +23,11 @@ int main() {
                 printf("%d SND: %s\n", getpid(), buffer);
                 buffer[0] = '\0'; // following shorter words cannot contain junk
             }
+            break;
         default:
             close(0);
             wait(NULL);
+            break;
     }
     return 0;
 }

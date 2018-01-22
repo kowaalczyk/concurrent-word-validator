@@ -96,7 +96,7 @@ int main() {
     bool err = false;
 
     printf("Starting fork\n");
-    pid_t child_pid = async_sender();
+    async_sender();
 
 //    sleep(10); // sender will fail if queue is not opened!
     test_log("RECEIVER: creating mq...");
@@ -127,7 +127,6 @@ int main() {
                 exit(-1);
                 break;
         }
-        assert(msg.tester_pid == child_pid);
         test_log("RECEIVER: received message:");
         test_log(msg.word);
         test_log("");

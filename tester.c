@@ -8,8 +8,8 @@
 #include <zconf.h>
 #include <wait.h>
 #include <assert.h>
-#include "validator_mq.h"
-#include "tester_mq.h"
+#include "src/validator_mq.h"
+#include "src/tester_mq.h"
 
 #ifndef SIG_SNT_SUCCESS
 #define SIG_SNT_SUCCESS (SIGRTMIN+1)
@@ -56,6 +56,7 @@ static void err_sig_other_and_exit() {
 static void sig_snt_success_handler(int sig) {
     assert(sig == SIG_SNT_SUCCESS);
     assert(main_pid == getpid());
+    UNUSED(sig);
 
     comm_summary.snt++;
 }
@@ -68,6 +69,7 @@ static void sig_snt_success_handler(int sig) {
 static void sig_rcd_complete_handler(int sig) {
     assert(sig == SIG_RCD_COMPLETE);
     assert(sender_pid == getpid());
+    UNUSED(sig);
 
     log_formatted("Sender received complete signal");
     validator_mq_finish(false, validator_mq, &err); // fail silently
@@ -83,6 +85,7 @@ static void sig_rcd_complete_handler(int sig) {
  */
 static void sig_err_handler(int sig) {
     assert(sig == SIGINT || sig == SIGTERM);
+    UNUSED(sig);
 
     if(main_pid == getpid()) {
         // main process
@@ -197,6 +200,8 @@ static void async_spawn_sender() {
     switch (sender_pid = fork()) {
         case -1:
             HANDLE_ERR_EXIT_WITH_MSG("Error in fork");
+            break;
+
         case 0:
             // close tester mq
             tester_mq_finish(false, tester_mq, NULL, &err);

@@ -9,9 +9,9 @@
 #include <errno.h>
 #include <assert.h>
 #include <wait.h>
-#include "config.h"
-#include "validator_mq.h"
-#include "automaton.h"
+#include "src/config.h"
+#include "src/validator_mq.h"
+#include "src/automaton.h"
 
 pid_t validator_pid = -1;
 
@@ -23,22 +23,13 @@ void err_kill_validator_and_exit() {
     exit(EXIT_FAILURE);
 }
 
-/// checks if given state is universal in a given automata
-static bool is_universal(const automaton * a, char state) {
-    assert(state >= 0 + STR_STORAGE_VAL_OFFSET);
-    assert(state < a->states_size + STR_STORAGE_VAL_OFFSET);
-
-    state -= STR_STORAGE_VAL_OFFSET;
-    return state < a->universal_states_size;
-}
-
 /// check if given state is existential in a given automata
 static bool is_existential(const automaton * a, char state) {
     assert(state >= 0 + STR_STORAGE_VAL_OFFSET);
     assert(state < a->states_size + STR_STORAGE_VAL_OFFSET);
 
     state -= STR_STORAGE_VAL_OFFSET;
-    return state >= a->universal_states_size;
+    return state >= (int)a->universal_states_size;
 }
 
 /// iterates over acceptable states in automaton a, checking if the given state is acceptable, O(n)
@@ -48,7 +39,7 @@ static bool is_acceptable(const automaton * a, char state) {
 
     size_t acceptable_states_length = strlen(a->acceptable_states);
     int i;
-    for(i=0; i<acceptable_states_length; i++) {
+    for(i=0; i<(int)acceptable_states_length; i++) {
         if(a->acceptable_states[i] == state) {
             return true;
         }
@@ -94,11 +85,12 @@ static bool accept_rec(const automaton *a, const char *word, const char *state_l
         bool err = false;
         size_t await_forks = 0;
         int i;
-        for(i=0; i<following_states_length-1; i++) {
+        for(i=0; i<(int)following_states_length-1; i++) {
             switch (fork()) {
                 case -1:
                     err = true;
                     HANDLE_ERR_WITH_MSG(err_kill_validator_and_exit, "RUN: Failed to perform fork");
+                    break;
                 case 0:
                     // append one of possible following states to current state_list
                     state_list_extended[sle_len] = following_states[i];
@@ -141,8 +133,7 @@ static bool accept_rec(const automaton *a, const char *word, const char *state_l
         HANDLE_ERR_WITH_MSG(err_kill_validator_and_exit, "RUN: Unexpected error in wait");
         return ans;
     }
-    assert(is_universal(a, state_list[depth]));
-    // need to accept all of following states
+    // run is universal, need to accept all of following states
     if(following_states_length == 0) {
         return (depth < w_len);
     }
@@ -151,11 +142,12 @@ static bool accept_rec(const automaton *a, const char *word, const char *state_l
     bool err = false;
     size_t await_forks = 0;
     int i;
-    for(i=0; i<following_states_length-1; i++) {
+    for(i=0; i<(int)following_states_length-1; i++) {
         switch (fork()) {
             case -1:
                 err = true;
                 HANDLE_ERR_WITH_MSG(err_kill_validator_and_exit, "RUN: Failed to perform fork");
+                break;
             case 0:
                 // append one of possible following states to current state_list
                 state_list_extended[sle_len] = following_states[i];

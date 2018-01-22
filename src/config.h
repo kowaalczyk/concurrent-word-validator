@@ -22,6 +22,9 @@ static const bool enable_logging = true;
 static const bool enable_logging = false;
 #endif /* PW_ENABLE_LOGGING */
 
+/// mark unused parameters to prevent compilation errors
+#define UNUSED(x) (void)(x)
+
 /// standard logging function used for debug
 extern void log_formatted(const char *fmt, ...);
 

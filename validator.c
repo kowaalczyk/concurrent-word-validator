@@ -10,11 +10,11 @@
 #include <wait.h>
 #include <assert.h>
 #include <errno.h>
-#include "automaton.h"
-#include "validator_mq.h"
-#include "tester_mq.h"
-#include "tester_list.h"
-#include "pid_list.h"
+#include "src/automaton.h"
+#include "src/validator_mq.h"
+#include "src/tester_mq.h"
+#include "src/tester_list.h"
+#include "src/pid_list.h"
 
 #ifndef SIG_SNT_SUCCESS
 #define SIG_SNT_SUCCESS (SIGRTMIN+1)
@@ -54,6 +54,8 @@ static void kill_all_exit() {
  * @param sig
  */
 static void sig_err_handler(int sig) {
+    UNUSED(sig);
+
     bool ignored_err = false;
     if(main_pid == getpid()) {
         for(tester_list_t *iter = tester_data; iter != NULL; iter = iter->next) {
@@ -83,6 +85,7 @@ static void sig_err_handler(int sig) {
 static void sig_snt_success_handler(int sig) {
     assert(sig == SIG_SNT_SUCCESS);
     assert(main_pid == getpid());
+    UNUSED(sig);
 
     comm_summary.snt++;
 }

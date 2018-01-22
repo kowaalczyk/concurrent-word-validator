@@ -9,6 +9,7 @@
 void load_automaton(automaton *ptr, bool *err) {
     VOID_FAIL_IF(ptr == NULL);
 
+    int tmp_err = 0;
     // iteration variables
     unsigned int i,j;
     // temporary data variables
@@ -32,7 +33,9 @@ void load_automaton(automaton *ptr, bool *err) {
     }
 
     // load structure parameters
-    scanf("%d %d %d %d %d\n", &n, &a, &q, &u, &f);
+    tmp_err = scanf("%d %d %d %d %d\n", &n, &a, &q, &u, &f);
+    VOID_FAIL_IF(tmp_err == EOF);
+
     ptr->alphabet_size = a;
     ptr->states_size = q;
     ptr->universal_states_size = u;
@@ -43,7 +46,8 @@ void load_automaton(automaton *ptr, bool *err) {
             // 0 has already been loaded
             case 1:
                 // loading starting state
-                scanf("%d\n", &c_int);
+                tmp_err = scanf("%d\n", &c_int);
+                VOID_FAIL_IF(tmp_err == EOF);
                 assert(0 <= c_int && c_int < (int)ptr->states_size);
 
                 ptr->starting_state = (char) (c_int + STR_STORAGE_VAL_OFFSET);
@@ -51,8 +55,9 @@ void load_automaton(automaton *ptr, bool *err) {
             case 2:
                 // loading acceptable states
                 for(j=0; j<f; j++) {
-                    scanf("%d\n", &c_int);
-                    assert(0 <= c_int && c_int < ptr->states_size);
+                    tmp_err = scanf("%d\n", &c_int);
+                    VOID_FAIL_IF(tmp_err == EOF);
+                    assert(0 <= c_int && c_int < (int)ptr->states_size);
 
                     c_int += STR_STORAGE_VAL_OFFSET;
                     ptr->acceptable_states[j] = (char) c_int;
