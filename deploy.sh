@@ -4,6 +4,9 @@ echo "preparing files and folders..."
 mkdir kk385830 >/dev/null 2>&1
 rm kk385830.zip >/dev/null 2>&1
 
+echo "exporting pdf..."
+markdown-pdf README.md -o kk385830/README.pdf >/dev/null 2>&1
+
 echo "copying files..."
 cp -r src kk385830/
 cp -r test kk385830/
