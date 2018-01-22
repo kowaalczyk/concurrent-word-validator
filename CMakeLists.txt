@@ -1,16 +1,16 @@
 cmake_minimum_required(VERSION 3.8)
 
 # force release build when on a release branch
-#set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Release)
 project(pw_validator)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_FLAGS "-Wall -Wextra")
 
 set(CMAKE_C_FLAGS_DEBUG "-O0 -g -DPW_ENABLE_LOGGING")
-set(CMAKE_C_FLAGS_RELEASE  "-Werror -O3 -DNDEBUG")
+set(CMAKE_C_FLAGS_RELEASE  "-Werror -O0 -DNDEBUG")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DPW_ENABLE_LOGGING")
-set(CMAKE_CXX_FLAGS_RELEASE  "-Werror -O3 -DNDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE  "-Werror -O0 -DNDEBUG")
 
 
 # libraries
@@ -33,13 +33,13 @@ target_link_libraries(tester_mq config rt)
 
 
 # release executables
-add_executable(validator src/validator.c)
+add_executable(validator validator.c)
 target_link_libraries(validator config automaton validator_mq tester_mq tester_list pid_list)
 
-add_executable(tester src/tester.c)
+add_executable(tester tester.c)
 target_link_libraries(tester config validator_mq tester_mq)
 
-add_executable(run src/run.c)
+add_executable(run run.c)
 target_link_libraries(run config validator_mq automaton)
 
 

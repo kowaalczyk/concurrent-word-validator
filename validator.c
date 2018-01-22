@@ -10,11 +10,11 @@
 #include <wait.h>
 #include <assert.h>
 #include <errno.h>
-#include "automaton.h"
-#include "validator_mq.h"
-#include "tester_mq.h"
-#include "tester_list.h"
-#include "pid_list.h"
+#include "src/automaton.h"
+#include "src/validator_mq.h"
+#include "src/tester_mq.h"
+#include "src/tester_list.h"
+#include "src/pid_list.h"
 
 #ifndef SIG_SNT_SUCCESS
 #define SIG_SNT_SUCCESS (SIGRTMIN+1)

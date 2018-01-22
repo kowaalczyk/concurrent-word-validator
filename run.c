@@ -9,9 +9,9 @@
 #include <errno.h>
 #include <assert.h>
 #include <wait.h>
-#include "config.h"
-#include "validator_mq.h"
-#include "automaton.h"
+#include "src/config.h"
+#include "src/validator_mq.h"
+#include "src/automaton.h"
 
 pid_t validator_pid = -1;
 

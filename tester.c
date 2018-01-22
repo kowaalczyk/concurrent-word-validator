@@ -8,8 +8,8 @@
 #include <zconf.h>
 #include <wait.h>
 #include <assert.h>
-#include "validator_mq.h"
-#include "tester_mq.h"
+#include "src/validator_mq.h"
+#include "src/tester_mq.h"
 
 #ifndef SIG_SNT_SUCCESS
 #define SIG_SNT_SUCCESS (SIGRTMIN+1)
