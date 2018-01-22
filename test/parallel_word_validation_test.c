@@ -1,7 +1,10 @@
 //
-// Created by kowal on 27.12.17.
+// Created by kowal on 29.12.17.
 //
 
+
+
+// PASTE IMPLEMENTATION HERE -------------------------------------------------------------------------------------------
 #include <stdlib.h>
 #include <unistd.h>
 #include <memory.h>
@@ -9,9 +12,8 @@
 #include <errno.h>
 #include <assert.h>
 #include <wait.h>
-#include "config.h"
-#include "validator_mq.h"
-#include "automaton.h"
+#include "../src/config.h"
+#include "../src/automaton.h"
 
 
 /// checks if given state is universal in a given automata
@@ -60,7 +62,6 @@ static const char * get_following_states(const automaton * a, char state, char w
     return a->transitions[state*a->alphabet_size + word_letter];
 }
 
-// TODO: Provide better error handling
 /// recursive helper for word validation, use 'accept' function
 static bool accept_rec(const automaton *a, const char *word, const char *state_list) {
     size_t w_len = strlen(word);
@@ -199,40 +200,49 @@ static bool accept(const automaton * a, const char * word) {
     return accept_rec(a, word, state_list);
 }
 
+// TEST ENGINE AUTOMATA LOAD IMPL --------------------------------------------------------------------------------------
+
+/**
+ * Runs single test, requires input from stdin:
+ * [automaton description]
+ * [word\n[1|0]\n]
+ * where 1 means the given word should be accepted, 0 that it should not.
+ */
+void run_test() {
+    automaton a;
+    size_t failed = 0;
+    bool err = false;
+    load_automaton(&a, &err);
+
+    char buffer[2*WORD_LEN_MAX]; // + '\n' and '\0'
+    while(fgets(buffer, sizeof(buffer), stdin)) {
+        assert(strlen(buffer) < WORD_LEN_MAX +2);
+        assert(buffer[strlen(buffer)-1] == '\n');
+        buffer[strlen(buffer)-1] = '\0';
+
+        // load answer for loaded word
+        char expected_ans_tmp[10];
+        fgets(expected_ans_tmp, 10, stdin);
+        bool expected_ans = (bool)(expected_ans_tmp[0]-'0');
+        assert(expected_ans==true || expected_ans == false);
+
+        // testing validation result
+        bool ans = accept(&a, buffer);
+        if(ans != expected_ans) {
+            failed++;
+            printf("FAILED TEST: %s - ", buffer);
+            char boolstr[2][100] = {"false", "true"};
+            printf("got %s instead of %s. \n", boolstr[ans], boolstr[expected_ans]);
+        } else {
+            printf("PASSED: %s\n", buffer);
+        }
+        printf("\n");
+        buffer[0] = '\0';
+    }
+    printf("Finished, # of failed cases: %zu.\n", failed);
+}
 
 int main() {
-    // TODO: Use signals in error handling (if unable to send to validator, everything should die)
-
-    bool err = false;
-    ssize_t tmp_err;
-    mqd_t validator_mq;
-    automaton a;
-    validator_mq_msg prepared_msg;
-
-    validator_mq = validator_mq_start(false, &err);
-    HANDLE_ERR_EXIT_WITH_MSG("RUN: Failed to open validator mq");
-
-    // receive automaton via pipe
-    tmp_err = read(0, &a, sizeof(automaton));
-    if(tmp_err != sizeof(automaton)) {
-        HANDLE_ERR_EXIT_WITH_MSG("RUN: Invalid read from pipe - automaton");
-    }
-
-    // receive prepared message via pipe
-    tmp_err = read(0, &prepared_msg, sizeof(validator_mq_msg));
-    if(tmp_err != sizeof(validator_mq_msg)) {
-        HANDLE_ERR_EXIT_WITH_MSG("RUN: Invalid read from pipe - word");
-    }
-
-    // perform validation
-    prepared_msg.accepted = accept(&a, prepared_msg.word);
-
-    // send completed message back to the validator
-    validator_mq_send_msg(validator_mq, &prepared_msg, &err);
-    HANDLE_ERR_EXIT_WITH_MSG("RUN: Failed to send message to validator mq");
-
-    // clean up
-    validator_mq_finish(false, validator_mq, &err);
-    HANDLE_ERR_EXIT_WITH_MSG("RUN: Failed to close validator mq");
+    run_test();
     return 0;
 }

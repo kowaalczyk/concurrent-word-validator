@@ -80,4 +80,7 @@ target_link_libraries(async_func_sig_return_test config)
 
 add_executable(fork_reader_sender_test test/fork_reader_sender_test.c)
 
+add_executable(parallel_word_validation_test test/parallel_word_validation_test.c)
+target_link_libraries(parallel_word_validation_test config automaton rt)
+
 install(TARGETS DESTINATION .)
