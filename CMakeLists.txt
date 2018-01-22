@@ -1,13 +1,16 @@
 cmake_minimum_required(VERSION 3.8)
+
+# force release build when on a release branch
+#set(CMAKE_BUILD_TYPE Release)
 project(pw_validator)
 
 set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_FLAGS "-Wall -Wextra -Werror")
+set(CMAKE_C_FLAGS "-Wall -Wextra")
 
-set(CMAKE_C_FLAGS_DEBUG "-O0 -g")
-set(CMAKE_C_FLAGS_RELEASE  "-Wall -Wextra -Werror -O3 -DNDEBUG")
-set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
-set(CMAKE_CXX_FLAGS_RELEASE  "-Wall -Wextra -Werror -O3 -DNDEBUG")
+set(CMAKE_C_FLAGS_DEBUG "-O0 -g -DPW_ENABLE_LOGGING")
+set(CMAKE_C_FLAGS_RELEASE  "-Werror -O3 -DNDEBUG")
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DPW_ENABLE_LOGGING")
+set(CMAKE_CXX_FLAGS_RELEASE  "-Werror -O3 -DNDEBUG")
 
 
 # libraries
