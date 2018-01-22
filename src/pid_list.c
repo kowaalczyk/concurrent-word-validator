@@ -22,7 +22,7 @@ pid_t pid_list_emplace(pid_list_item_t *list, pid_t pid, bool *err) {
     assert(list != NULL && list->pid == PID_LIST_EMPTY_ITEM_PID);
 
     pid_list_item_t *new_first = PIDLIST_ALLOC;
-    PTR_FAIL_IF(new_first == NULL);
+    INT_FAIL_IF(new_first == NULL);
 
     pid_list_item_t *old_first = list->next;
     new_first->pid = pid;
