@@ -54,8 +54,6 @@ static void kill_all_exit() {
  * @param sig
  */
 static void sig_err_handler(int sig) {
-    fprintf(stderr, "Received terminal signal, attempting to clean as much as possible\n");
-
     bool ignored_err = false;
     if(main_pid == getpid()) {
         for(tester_list_t *iter = tester_data; iter != NULL; iter = iter->next) {
@@ -161,8 +159,12 @@ static void async_create_run(int *pipe_dsc) {
             if(tmp_err) {
                 exit(EXIT_FAILURE);
             }
+
             // exec child
-            char * child_argv[] = {"run", NULL};
+            char parent_pid_str[PID_STR_LEN];
+            sprintf(parent_pid_str, "%d", main_pid);
+            char * child_argv[] = {"run", parent_pid_str, NULL};
+
             execvp("./run", child_argv);
             exit(EXIT_FAILURE);
         default:

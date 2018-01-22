@@ -13,6 +13,15 @@
 #include "validator_mq.h"
 #include "automaton.h"
 
+pid_t validator_pid = -1;
+
+/// error handler kills validator and exits, when forks finish, parent process is killed eventually
+void err_kill_validator_and_exit() {
+    if(validator_pid != -1) {
+        kill(validator_pid, SIGTERM);
+    }
+    exit(EXIT_FAILURE);
+}
 
 /// checks if given state is universal in a given automata
 static bool is_universal(const automaton * a, char state) {
@@ -60,7 +69,6 @@ static const char * get_following_states(const automaton * a, char state, char w
     return a->transitions[state*a->alphabet_size + word_letter];
 }
 
-// TODO: Provide better error handling
 /// recursive helper for word validation, use 'accept' function
 static bool accept_rec(const automaton *a, const char *word, const char *state_list) {
     size_t w_len = strlen(word);
@@ -90,7 +98,7 @@ static bool accept_rec(const automaton *a, const char *word, const char *state_l
             switch (fork()) {
                 case -1:
                     err = true;
-                    HANDLE_ERR_EXIT_WITH_MSG("RUN: Failed to perform fork");
+                    HANDLE_ERR_WITH_MSG(err_kill_validator_and_exit, "RUN: Failed to perform fork");
                 case 0:
                     // append one of possible following states to current state_list
                     state_list_extended[sle_len] = following_states[i];
@@ -130,7 +138,7 @@ static bool accept_rec(const automaton *a, const char *word, const char *state_l
             }
             await_forks--;
         }
-        HANDLE_ERR_EXIT_WITH_MSG("RUN: Unexpected error in wait");
+        HANDLE_ERR_WITH_MSG(err_kill_validator_and_exit, "RUN: Unexpected error in wait");
         return ans;
     }
     assert(is_universal(a, state_list[depth]));
@@ -147,7 +155,7 @@ static bool accept_rec(const automaton *a, const char *word, const char *state_l
         switch (fork()) {
             case -1:
                 err = true;
-                HANDLE_ERR_EXIT_WITH_MSG("RUN: Failed to perform fork");
+                HANDLE_ERR_WITH_MSG(err_kill_validator_and_exit, "RUN: Failed to perform fork");
             case 0:
                 // append one of possible following states to current state_list
                 state_list_extended[sle_len] = following_states[i];
@@ -187,7 +195,7 @@ static bool accept_rec(const automaton *a, const char *word, const char *state_l
         }
         await_forks--;
     }
-    HANDLE_ERR_EXIT_WITH_MSG("RUN: Unexpected error in wait");
+    HANDLE_ERR_WITH_MSG(err_kill_validator_and_exit, "RUN: Unexpected error in wait");
     return ans;
 }
 
@@ -200,7 +208,14 @@ static bool accept(const automaton * a, const char * word) {
 }
 
 
-int main() {
+int main(int argc, char * argv[]) {
+    if(argc != 2) {
+        printf("RUN - bad number of arguments supplied (usage: ./run <validator_pid>)");
+        exit(EXIT_FAILURE);
+    }
+
+    sscanf(argv[1], "%d", &validator_pid);
+
     // TODO: Use signals in error handling (if unable to send to validator, everything should die)
 
     bool err = false;
@@ -210,18 +225,18 @@ int main() {
     validator_mq_msg prepared_msg;
 
     validator_mq = validator_mq_start(false, &err);
-    HANDLE_ERR_EXIT_WITH_MSG("RUN: Failed to open validator mq");
+    HANDLE_ERR_WITH_MSG(err_kill_validator_and_exit, "RUN: Failed to open validator mq");
 
     // receive automaton via pipe
     tmp_err = read(0, &a, sizeof(automaton));
     if(tmp_err != sizeof(automaton)) {
-        HANDLE_ERR_EXIT_WITH_MSG("RUN: Invalid read from pipe - automaton");
+        HANDLE_ERR_WITH_MSG(err_kill_validator_and_exit, "RUN: Invalid read from pipe - automaton");
     }
 
     // receive prepared message via pipe
     tmp_err = read(0, &prepared_msg, sizeof(validator_mq_msg));
     if(tmp_err != sizeof(validator_mq_msg)) {
-        HANDLE_ERR_EXIT_WITH_MSG("RUN: Invalid read from pipe - word");
+        HANDLE_ERR_WITH_MSG(err_kill_validator_and_exit, "RUN: Invalid read from pipe - word");
     }
 
     // perform validation
@@ -229,10 +244,10 @@ int main() {
 
     // send completed message back to the validator
     validator_mq_send_msg(validator_mq, &prepared_msg, &err);
-    HANDLE_ERR_EXIT_WITH_MSG("RUN: Failed to send message to validator mq");
+    HANDLE_ERR_WITH_MSG(err_kill_validator_and_exit, "RUN: Failed to send message to validator mq");
 
     // clean up
     validator_mq_finish(false, validator_mq, &err);
-    HANDLE_ERR_EXIT_WITH_MSG("RUN: Failed to close validator mq");
+    HANDLE_ERR_WITH_MSG(err_kill_validator_and_exit, "RUN: Failed to close validator mq");
     return 0;
 }
