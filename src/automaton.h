@@ -8,8 +8,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#define ALPHABET_SIZE ('z'-'a')
-#define STATES_SIZE 100
+#define ALPHABET_SIZE ('z'-'a'+1)
+#define STATES_SIZE 101
 #define TRANSITIONS_SIZE (STATES_SIZE * ALPHABET_SIZE)
 #define STR_STORAGE_VAL_OFFSET 1
 

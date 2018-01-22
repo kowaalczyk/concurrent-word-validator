@@ -25,13 +25,15 @@ void load_automaton(automaton *ptr, bool *err) {
 
     // clean arrays to prevent weird errors
     ptr->acceptable_states[0] = '\0';
+    memset(ptr->acceptable_states, 0, STATES_SIZE);
     for(j=0; j<TRANSITIONS_SIZE; j++) {
         ptr->transitions[j][0] = '\0';
+        memset(ptr->transitions[j], 0, STATES_SIZE);
     }
 
     // load structure parameters
     scanf("%d %d %d %d %d\n", &n, &a, &q, &u, &f);
-    ptr->alphabet_size = n;
+    ptr->alphabet_size = a;
     ptr->states_size = q;
     ptr->universal_states_size = u;
 
@@ -84,6 +86,8 @@ void load_automaton(automaton *ptr, bool *err) {
                 j = 0;
                 while(sscanf(input_buff, "%d %n", &c_int, &input_buff_offset) == 1) {
                     c_int += STR_STORAGE_VAL_OFFSET; // offsetting states in strings, see automaton struct documentation
+                    fprintf(stderr, "(%d * %zu) + %d = %zu : %d\n", state, (ptr->alphabet_size), letter, transition_pos, c_int); // TODO: Remove
+                    fflush(stderr); // TODO: Remove
                     ptr->transitions[transition_pos][j] = (char)(c_int);
                     j++;
                     input_buff += input_buff_offset;
