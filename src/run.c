@@ -14,7 +14,7 @@
 
 
 /// checks if given state is universal in a given automata
-bool is_universal(const automaton * a, char state) {
+static bool is_universal(const automaton * a, char state) {
     assert(state >= 0 + STR_STORAGE_VAL_OFFSET);
     assert(state < a->states_size + STR_STORAGE_VAL_OFFSET);
 
@@ -23,7 +23,7 @@ bool is_universal(const automaton * a, char state) {
 }
 
 /// check if given state is existential in a given automata
-bool is_existential(const automaton * a, char state) {
+static bool is_existential(const automaton * a, char state) {
     assert(state >= 0 + STR_STORAGE_VAL_OFFSET);
     assert(state < a->states_size + STR_STORAGE_VAL_OFFSET);
 
@@ -32,7 +32,7 @@ bool is_existential(const automaton * a, char state) {
 }
 
 /// iterates over acceptable states in automaton a, checking if the given state is acceptable, O(n)
-bool is_acceptable(const automaton * a, char state) {
+static bool is_acceptable(const automaton * a, char state) {
     assert(state >= 0 + STR_STORAGE_VAL_OFFSET);
     assert(state < a->states_size + STR_STORAGE_VAL_OFFSET);
 
@@ -48,7 +48,7 @@ bool is_acceptable(const automaton * a, char state) {
 }
 
 /// returns string containing avaliable transitions (following states for current state and currently processed word) for given state in given automaton
-const char * get_following_states(const automaton * a, char state, char word_letter) {
+static const char * get_following_states(const automaton * a, char state, char word_letter) {
     assert(state >= 0 + STR_STORAGE_VAL_OFFSET);
     assert(state < a->states_size + STR_STORAGE_VAL_OFFSET);
     assert(word_letter >= 'a');
@@ -60,7 +60,7 @@ const char * get_following_states(const automaton * a, char state, char word_let
 }
 
 /// recursive helper for word validation, use 'accept' function
-bool accept_rec(const automaton *a, const char *word, const char *state_list) {
+static bool accept_rec(const automaton *a, const char *word, const char *state_list) {
     size_t w_len = strlen(word);
     size_t depth = strlen(state_list)-1;
 
@@ -110,7 +110,7 @@ bool accept_rec(const automaton *a, const char *word, const char *state_list) {
 }
 
 /// checks if given automaton accepts given word
-bool accept(const automaton * a, const char * word) {
+static bool accept(const automaton * a, const char * word) {
     char state_list[WORD_LEN_MAX]; // states list for given word is equal its length
     state_list[0] = a->starting_state;
     state_list[1] = '\0';
@@ -130,17 +130,16 @@ int main() {
     validator_mq = validator_mq_start(false, &err);
     HANDLE_ERR_EXIT_WITH_MSG("RUN: Failed to open validator mq");
 
-    // TODO: Function
     // receive automaton via pipe
     tmp_err = read(0, &a, sizeof(automaton));
     if(tmp_err != sizeof(automaton)) {
-        exit(-1); // TODO: better handling
+        HANDLE_ERR_EXIT_WITH_MSG("RUN: Invalid read from pipe - automaton");
     }
 
     // receive prepared message via pipe
     tmp_err = read(0, &prepared_msg, sizeof(validator_mq_msg));
     if(tmp_err != sizeof(validator_mq_msg)) {
-        exit(-1); // TODO: better handling
+        HANDLE_ERR_EXIT_WITH_MSG("RUN: Invalid read from pipe - word");
     }
 
     // perform validation

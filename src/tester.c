@@ -11,6 +11,7 @@
 #include "validator_mq.h"
 #include "tester_mq.h"
 
+
 #define SIG_SNT_SUCCESS (SIGRTMIN+1)
 #define SIG_RCD_COMPLETE (SIGRTMIN+2)
 
@@ -35,9 +36,9 @@ static comm_sumary_t comm_summary = {0, 0, 0};
 
 /**
  * Error handler.
- * When executed, signals
+ * Relays signal to other process and exits with failure status code.
  */
-void err_sig_other_and_exit() {
+static void err_sig_other_and_exit() {
     pid_t other = getpid() == main_pid ? sender_pid : main_pid;
     kill(other, SIGTERM);
     exit(EXIT_FAILURE);
@@ -48,7 +49,7 @@ void err_sig_other_and_exit() {
  * Used to notify main process about successful attempt to send message by a child process.
  * @param sig
  */
-void sig_snt_success_handler(int sig) {
+static void sig_snt_success_handler(int sig) {
     assert(sig == SIG_SNT_SUCCESS);
     assert(main_pid == getpid());
 
@@ -60,7 +61,7 @@ void sig_snt_success_handler(int sig) {
  * Used to gracefully stop child process when it is no longer necessary, but not in case of error.
  * @param sig
  */
-void sig_rcd_complete_handler(int sig) {
+static void sig_rcd_complete_handler(int sig) {
     assert(sig == SIG_RCD_COMPLETE);
     assert(sender_pid == getpid());
 
@@ -76,7 +77,7 @@ void sig_rcd_complete_handler(int sig) {
  * All without error checking, as it is no longer necessary and possible.
  * @param sig
  */
-void sig_err_handler(int sig) {
+static void sig_err_handler(int sig) {
     assert(sig == SIGINT || sig == SIGTERM);
 
     if(main_pid == getpid()) {
@@ -105,7 +106,7 @@ void sig_err_handler(int sig) {
  * Standard error handling.
  * @param err
  */
-void setup_sig_handlers(bool *err) {
+static void setup_sig_handlers(bool *err) {
     assert(main_pid == getpid());
 
     int tmp_err;
@@ -147,7 +148,7 @@ void setup_sig_handlers(bool *err) {
  * Standard error handling.
  * @param err
  */
-void run_sender(bool *err) {
+static void run_sender(bool *err) {
     int tmp_err = 0;
     bool start = true;
     bool halt = !start;
@@ -185,7 +186,7 @@ void run_sender(bool *err) {
  * Creates sender process that will read words from stdin and send them to validator.
  * If any of the processes (main or sender) fails, other one is notified and both are expected to exit asap.
  */
-void async_spawn_sender() {
+static void async_spawn_sender() {
     assert(err == false);
     assert(main_pid != 0);
 
@@ -219,7 +220,7 @@ void async_spawn_sender() {
  * Standard error handling.
  * @param err
  */
-void collect_sender(bool *err) {
+static void collect_sender(bool *err) {
     assert(await_sender == true);
 
     pid_t tmp_pid = 0;
@@ -233,7 +234,7 @@ void collect_sender(bool *err) {
  * Processes message received to tester mq.
  * @param tester_msg
  */
-void process_msg(const tester_mq_msg *tester_msg) {
+static void process_msg(const tester_mq_msg *tester_msg) {
     if(!(*tester_msg).ignored) {
         comm_summary.rcd++;
         log_formatted("%d RCD: %s, total rcd=%d", getpid(), (*tester_msg).word, comm_summary.rcd);
