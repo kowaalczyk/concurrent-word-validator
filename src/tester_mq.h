@@ -10,8 +10,6 @@
 #include "config.h"
 
 
-// 1 byte holds 3 decimal digits at maximum, so 3x sizeof in bytes is enough to hold pid_t as string
-#define PID_STR_LEN (sizeof(pid_t)*3)
 #define TESTER_MQ_NAME_PREFIX_LEN 24
 #define TESTER_MQ_NAME_LEN (TESTER_MQ_NAME_PREFIX_LEN + PID_STR_LEN)
 

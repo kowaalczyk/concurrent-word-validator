@@ -74,10 +74,14 @@ target_link_libraries(validator_mq_test config validator_mq)
 #target_link_libraries(pipe_cpy_test_2)
 
 add_executable(exec_wait_return_test test/exec_wait_return_test.c)
+add_executable(casting_to_argv_test test/casting_to_argv_test.c)
 
 add_executable(async_func_sig_return_test test/async_func_sig_return_test.c)
 target_link_libraries(async_func_sig_return_test config)
 
 add_executable(fork_reader_sender_test test/fork_reader_sender_test.c)
+
+add_executable(parallel_word_validation_test test/parallel_word_validation_test.c)
+target_link_libraries(parallel_word_validation_test config automaton rt)
 
 install(TARGETS DESTINATION .)

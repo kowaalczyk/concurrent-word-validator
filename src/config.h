@@ -10,7 +10,8 @@
 #include <stdbool.h>
 
 // TODO: Refactor #defines to include project prefix
-
+// 1 byte holds 3 decimal digits at maximum, so 3x sizeof in bytes is enough to hold pid_t as string
+#define PID_STR_LEN (sizeof(pid_t)*3)
 #define WORD_LEN_MAX 1000
 
 #define NORMAL_MQ_PRIORITY 1

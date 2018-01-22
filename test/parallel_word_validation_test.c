@@ -1,7 +1,10 @@
 //
-// Created by kowal on 27.12.17.
+// Created by kowal on 29.12.17.
 //
 
+
+
+// PASTE IMPLEMENTATION HERE -------------------------------------------------------------------------------------------
 #include <stdlib.h>
 #include <unistd.h>
 #include <memory.h>
@@ -9,19 +12,9 @@
 #include <errno.h>
 #include <assert.h>
 #include <wait.h>
-#include "config.h"
-#include "validator_mq.h"
-#include "automaton.h"
+#include "../src/config.h"
+#include "../src/automaton.h"
 
-pid_t validator_pid = -1;
-
-/// error handler kills validator and exits, when forks finish, parent process is killed eventually
-void err_kill_validator_and_exit() {
-    if(validator_pid != -1) {
-        kill(validator_pid, SIGTERM);
-    }
-    exit(EXIT_FAILURE);
-}
 
 /// checks if given state is universal in a given automata
 static bool is_universal(const automaton * a, char state) {
@@ -98,7 +91,7 @@ static bool accept_rec(const automaton *a, const char *word, const char *state_l
             switch (fork()) {
                 case -1:
                     err = true;
-                    HANDLE_ERR_WITH_MSG(err_kill_validator_and_exit, "RUN: Failed to perform fork");
+                    HANDLE_ERR_EXIT_WITH_MSG("RUN: Failed to perform fork");
                 case 0:
                     // append one of possible following states to current state_list
                     state_list_extended[sle_len] = following_states[i];
@@ -138,7 +131,7 @@ static bool accept_rec(const automaton *a, const char *word, const char *state_l
             }
             await_forks--;
         }
-        HANDLE_ERR_WITH_MSG(err_kill_validator_and_exit, "RUN: Unexpected error in wait");
+        HANDLE_ERR_EXIT_WITH_MSG("RUN: Unexpected error in wait");
         return ans;
     }
     assert(is_universal(a, state_list[depth]));
@@ -155,7 +148,7 @@ static bool accept_rec(const automaton *a, const char *word, const char *state_l
         switch (fork()) {
             case -1:
                 err = true;
-                HANDLE_ERR_WITH_MSG(err_kill_validator_and_exit, "RUN: Failed to perform fork");
+                HANDLE_ERR_EXIT_WITH_MSG("RUN: Failed to perform fork");
             case 0:
                 // append one of possible following states to current state_list
                 state_list_extended[sle_len] = following_states[i];
@@ -195,7 +188,7 @@ static bool accept_rec(const automaton *a, const char *word, const char *state_l
         }
         await_forks--;
     }
-    HANDLE_ERR_WITH_MSG(err_kill_validator_and_exit, "RUN: Unexpected error in wait");
+    HANDLE_ERR_EXIT_WITH_MSG("RUN: Unexpected error in wait");
     return ans;
 }
 
@@ -207,47 +200,49 @@ static bool accept(const automaton * a, const char * word) {
     return accept_rec(a, word, state_list);
 }
 
+// TEST ENGINE AUTOMATA LOAD IMPL --------------------------------------------------------------------------------------
 
-int main(int argc, char * argv[]) {
-    if(argc != 2) {
-        printf("RUN - bad number of arguments supplied (usage: ./run <validator_pid>)");
-        exit(EXIT_FAILURE);
-    }
-
-    sscanf(argv[1], "%d", &validator_pid);
-
-    // TODO: Use signals in error handling (if unable to send to validator, everything should die)
-
-    bool err = false;
-    ssize_t tmp_err;
-    mqd_t validator_mq;
+/**
+ * Runs single test, requires input from stdin:
+ * [automaton description]
+ * [word\n[1|0]\n]
+ * where 1 means the given word should be accepted, 0 that it should not.
+ */
+void run_test() {
     automaton a;
-    validator_mq_msg prepared_msg;
+    size_t failed = 0;
+    bool err = false;
+    load_automaton(&a, &err);
 
-    validator_mq = validator_mq_start(false, &err);
-    HANDLE_ERR_WITH_MSG(err_kill_validator_and_exit, "RUN: Failed to open validator mq");
+    char buffer[2*WORD_LEN_MAX]; // + '\n' and '\0'
+    while(fgets(buffer, sizeof(buffer), stdin)) {
+        assert(strlen(buffer) < WORD_LEN_MAX +2);
+        assert(buffer[strlen(buffer)-1] == '\n');
+        buffer[strlen(buffer)-1] = '\0';
 
-    // receive automaton via pipe
-    tmp_err = read(0, &a, sizeof(automaton));
-    if(tmp_err != sizeof(automaton)) {
-        HANDLE_ERR_WITH_MSG(err_kill_validator_and_exit, "RUN: Invalid read from pipe - automaton");
+        // load answer for loaded word
+        char expected_ans_tmp[10];
+        fgets(expected_ans_tmp, 10, stdin);
+        bool expected_ans = (bool)(expected_ans_tmp[0]-'0');
+        assert(expected_ans==true || expected_ans == false);
+
+        // testing validation result
+        bool ans = accept(&a, buffer);
+        if(ans != expected_ans) {
+            failed++;
+            printf("FAILED TEST: %s - ", buffer);
+            char boolstr[2][100] = {"false", "true"};
+            printf("got %s instead of %s. \n", boolstr[ans], boolstr[expected_ans]);
+        } else {
+            printf("PASSED: %s\n", buffer);
+        }
+        printf("\n");
+        buffer[0] = '\0';
     }
+    printf("Finished, # of failed cases: %zu.\n", failed);
+}
 
-    // receive prepared message via pipe
-    tmp_err = read(0, &prepared_msg, sizeof(validator_mq_msg));
-    if(tmp_err != sizeof(validator_mq_msg)) {
-        HANDLE_ERR_WITH_MSG(err_kill_validator_and_exit, "RUN: Invalid read from pipe - word");
-    }
-
-    // perform validation
-    prepared_msg.accepted = accept(&a, prepared_msg.word);
-
-    // send completed message back to the validator
-    validator_mq_send_msg(validator_mq, &prepared_msg, &err);
-    HANDLE_ERR_WITH_MSG(err_kill_validator_and_exit, "RUN: Failed to send message to validator mq");
-
-    // clean up
-    validator_mq_finish(false, validator_mq, &err);
-    HANDLE_ERR_WITH_MSG(err_kill_validator_and_exit, "RUN: Failed to close validator mq");
+int main() {
+    run_test();
     return 0;
 }
