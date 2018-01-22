@@ -54,7 +54,7 @@ void validator_mq_send(mqd_t validator_mq, bool start, bool halt, bool completed
     int tmp_err = 0;
     validator_mq_msg msg;
     memset(&msg, 0, sizeof(validator_mq_msg)); // to prevent valgrind errors
-    msg = {start, halt, completed, finish, accepted, tester_pid, ""};
+    msg = (validator_mq_msg){start, halt, completed, finish, accepted, tester_pid, ""};
     if(word != NULL) {
         memcpy(msg.word, word, strlen(word));
     }
