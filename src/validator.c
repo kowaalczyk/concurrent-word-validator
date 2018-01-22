@@ -382,8 +382,10 @@ static void handle_request_standard(tester_t *tester, validator_mq_msg *msg) {
         async_send_to_tester(tester->pid, msg->word, send_completed, tester->rcd, false, msg->accepted);
         HANDLE_ERR_WITH_MSG(kill_all_exit, "Unable to send message to tester");
     } else {
-        err = true;
-        HANDLE_ERR_WITH_MSG(kill_all_exit, "Unexpected type of request in validator mq");
+        assert(!msg->finish && !msg->start && !msg->halt);
+
+        // empty message or completed flag (without word or halt)
+        tester->completed = msg->completed;
     }
 }
 
