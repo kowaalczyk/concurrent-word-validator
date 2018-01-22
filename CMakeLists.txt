@@ -8,22 +8,23 @@ set(CMAKE_C_FLAGS_DEBUG "-O0 -g -DPW_ENABLE_LOGGING")
 set(CMAKE_C_FLAGS_RELEASE  "-O3 -DNDEBUG")
 
 
-add_library(err STATIC src/err.h src/err.c) # TODO: Add custom err library
-
 # libraries
 add_library(config STATIC src/config.c src/config.h)
 
 add_library(automaton STATIC src/automaton.h src/automaton.c)
-target_link_libraries(automaton config err)
+target_link_libraries(automaton config)
 
 add_library(tester_list STATIC src/tester_list.h src/tester_list.c)
-target_link_libraries(tester_list config err)
+target_link_libraries(tester_list config)
+
+add_library(pid_list STATIC src/pid_list.h src/pid_list.c)
+target_link_libraries(pid_list config)
 
 add_library(validator_mq STATIC src/validator_mq.c src/validator_mq.h)
-target_link_libraries(validator_mq config err rt)
+target_link_libraries(validator_mq config rt)
 
 add_library(tester_mq STATIC src/tester_mq.c src/tester_mq.h)
-target_link_libraries(tester_mq config err rt)
+target_link_libraries(tester_mq config rt)
 
 
 # http://stackoverflow.com/questions/10555706/
@@ -67,10 +68,10 @@ target_link_libraries(validator_mq_test config validator_mq)
 #add_executable(pipe_cpy_test test/pipe_cpy_test.c)
 
 # pipe large struct test 2: compile child first, run parent and diff their output files (shold be the same)
-add_executable(pipe_cpy_test_child_2 test/pipe_cpy_test_child_2.c)
-target_link_libraries(pipe_cpy_test_child_2 err)
-add_executable(pipe_cpy_test_2 test/pipe_cpy_test_2.c)
-target_link_libraries(pipe_cpy_test_2 err)
+#add_executable(pipe_cpy_test_child_2 test/pipe_cpy_test_child_2.c)
+#target_link_libraries(pipe_cpy_test_child_2)
+#add_executable(pipe_cpy_test_2 test/pipe_cpy_test_2.c)
+#target_link_libraries(pipe_cpy_test_2)
 
 add_executable(exec_wait_return_test test/exec_wait_return_test.c)
 
