@@ -24,7 +24,7 @@ In order to allow most fluent flow of data between processes, **all blocking tas
 This approach guarantees incredibly fast processing, however it poses some serious challenges for synchronization of messages, in particular:  
 
 - when **fork sending a message from validator to tester** needs to update number of sent messages in parent process  
-  - this is achieved by using **custom real time signals** with **`*sa_restart*` flag enabled to send information about each successful request  
+  - this is achieved by using **custom real time signals** with `sa_restart` flag enabled to send information about each successful request  
   - similar solution is implemented in **tester**  
 - when **performing an exec call to create run** and sending a message through pipe  
   - this is handled by 2 forks: one to create a pipe and other to exec a run  
