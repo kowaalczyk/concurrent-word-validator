@@ -399,6 +399,13 @@ static void handle_request_standard(tester_t *tester, validator_mq_msg *msg) {
 
         // empty message or completed flag (without word or halt) TODO: Respond with completed response
         tester->completed = msg->completed;
+
+        bool send_completed = (tester->completed && tester->word_bal == 0 && !tester->completed_sent);
+        if(send_completed) {
+            tester->completed_sent = true;
+        }
+        async_send_to_tester(tester->pid, NULL, send_completed, tester->rcd, true, msg->accepted);
+        HANDLE_ERR_WITH_MSG(kill_all_exit, "Unable to send message to tester");
     }
 }
 
