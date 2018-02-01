@@ -319,7 +319,7 @@ static void init_run(const validator_mq_msg *msg) {
 static tester_t *tester_for_request(const validator_mq_msg *msg) {
     tester_t *tester = tester_list_find(tester_data, msg->tester_pid);
     if(!tester) {
-        tester = tester_list_emplace(tester_data, msg->tester_pid, 0, 0, 0, false, &err);
+        tester = tester_list_emplace(tester_data, msg->tester_pid, 0, 0, 0, false, false, &err);
         HANDLE_ERR_WITH_MSG(kill_all_exit, "Failed to insert tester to list");
     }
     assert(tester != NULL);
@@ -367,12 +367,16 @@ static void handle_request_standard(tester_t *tester, validator_mq_msg *msg) {
         halt_flag_raised = true;
         tester->completed = true;
 
-        // send completed flag if necessary
-        bool send_completed = (tester->word_bal == 0);
-        if(send_completed) {
-            async_send_to_tester(tester->pid, "THIS IS JUST A FLAG", send_completed, tester->rcd, true, false);
-            HANDLE_ERR_WITH_MSG(kill_all_exit, "Unable to send completed flag to tester");
+        // send completed flag to as much testers as possible
+        for(tester_list_t *td = tester_data->next; td != NULL; td = td->next) {
+            bool send_completed = (td->this->word_bal == 0 && !td->this->completed_sent);
+            if(send_completed) {
+                tester->completed_sent = true;
+                async_send_to_tester(td->this->pid, NULL, send_completed, td->this->rcd, true, false);
+                HANDLE_ERR_WITH_MSG(kill_all_exit, "Unable to send completed flag to tester");
+            }
         }
+        assert(tester->completed_sent);
     } else if(msg->finish) {
         assert(!msg->start);
 
@@ -384,7 +388,10 @@ static void handle_request_standard(tester_t *tester, validator_mq_msg *msg) {
             tester->acc++;
         }
         // format and send response
-        bool send_completed = (tester->completed && tester->word_bal == 0);
+        bool send_completed = (tester->completed && tester->word_bal == 0 && !tester->completed_sent);
+        if(send_completed) {
+            tester->completed_sent = true;
+        }
         async_send_to_tester(tester->pid, msg->word, send_completed, tester->rcd, false, msg->accepted);
         HANDLE_ERR_WITH_MSG(kill_all_exit, "Unable to send message to tester");
     } else {
@@ -392,6 +399,13 @@ static void handle_request_standard(tester_t *tester, validator_mq_msg *msg) {
 
         // empty message or completed flag (without word or halt)
         tester->completed = msg->completed;
+
+        bool send_completed = (tester->completed && tester->word_bal == 0 && !tester->completed_sent);
+        if(send_completed) {
+            tester->completed_sent = true;
+        }
+        async_send_to_tester(tester->pid, NULL, send_completed, tester->rcd, true, msg->accepted);
+        HANDLE_ERR_WITH_MSG(kill_all_exit, "Unable to send message to tester");
     }
 }
 
@@ -429,7 +443,10 @@ static void handle_request_only_finish(tester_t *tester, validator_mq_msg *msg) 
         HANDLE_ERR_WITH_MSG(kill_all_exit, "Unable to send response to tester asynchronously");
     } else {
         // no matter what it is, it should be ignored.
-        bool send_completed = (tester->word_bal == 0); // different condition because of raised halt flag
+        bool send_completed = (tester->word_bal == 0 && !tester->completed_sent); // different condition because of raised halt flag
+        if(send_completed) {
+            tester->completed_sent = true;
+        }
         async_send_to_tester(tester->pid, msg->word, send_completed, tester->rcd, true, false);
         HANDLE_ERR_WITH_MSG(kill_all_exit, "Unable to ignore tester asynchronously");
     }

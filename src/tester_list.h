@@ -14,6 +14,7 @@ typedef struct tester{
     size_t acc;
     int word_bal;
     bool completed;
+    bool completed_sent;
 } tester_t;
 
 typedef struct tester_list{
@@ -37,7 +38,7 @@ extern tester_list_t * tester_list_create(bool *err);
  * @param err
  */
 extern tester_t * tester_list_emplace(tester_list_t *list, pid_t pid, size_t rcd, size_t acc, int word_bal,
-                                      bool completed, bool *err);
+                                      bool completed, bool completed_sent, bool *err);
 
 /**
  * Checks if element with provided pid is present in a list.
