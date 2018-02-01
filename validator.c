@@ -397,7 +397,7 @@ static void handle_request_standard(tester_t *tester, validator_mq_msg *msg) {
     } else {
         assert(!msg->finish && !msg->start && !msg->halt);
 
-        // empty message or completed flag (without word or halt) TODO: Respond with completed response
+        // empty message or completed flag (without word or halt)
         tester->completed = msg->completed;
 
         bool send_completed = (tester->completed && tester->word_bal == 0 && !tester->completed_sent);
