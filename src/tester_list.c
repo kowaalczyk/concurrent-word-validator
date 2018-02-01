@@ -20,7 +20,8 @@ tester_list_t *tester_list_create(bool *err) {
     return guard;
 }
 
-tester_t * tester_list_emplace(tester_list_t *list, pid_t pid, size_t rcd, size_t acc, int word_bal, bool completed, bool *err) {
+tester_t * tester_list_emplace(tester_list_t *list, pid_t pid, size_t rcd, size_t acc, int word_bal, bool completed,
+                               bool completed_sent, bool *err) {
     TESTER_LIST_ASSERT_OK;
 
     tester_list_t *new_first = TESTER_LIST_ALLOC;
@@ -33,6 +34,7 @@ tester_t * tester_list_emplace(tester_list_t *list, pid_t pid, size_t rcd, size_
     new_tester->acc = acc;
     new_tester->word_bal = word_bal;
     new_tester->completed = completed;
+    new_tester->completed_sent = completed_sent;
 
     tester_list_t * old_first = list->next;
     new_first->this = new_tester;
