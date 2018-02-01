@@ -269,7 +269,6 @@ int main() {
     assert(err == false);
     // initial setup
     main_pid = getpid();
-    printf("PID: %d\n", main_pid);
     setup_sig_handlers(&err);
     HANDLE_ERR_EXIT_WITH_MSG("Failed to set up signal handlers");
 
@@ -296,6 +295,7 @@ int main() {
     // clean up
     collect_sender(&err);
     HANDLE_ERR_EXIT_WITH_MSG("Unexpected fail while collecting message sender");
+    printf("PID: %d\n", main_pid);
     print_comm_summary(&comm_summary);
     return 0;
 }
