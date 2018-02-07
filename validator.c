@@ -508,7 +508,7 @@ int main() {
     validator_mq_finish(true, validator_mq, &err);
     HANDLE_ERR_WITH_MSG(kill_all_exit, "Failed to close validator MQ");
 
-    print_comm_summary(&comm_summary);
+    print_comm_summary(&comm_summary, true);
     tester_list_print_log(tester_data);
     tester_list_destroy(tester_data);
     pid_list_destroy(children);

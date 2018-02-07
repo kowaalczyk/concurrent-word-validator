@@ -281,6 +281,7 @@ int main() {
     async_spawn_sender();
     close(0); // prevent any possible data races in input
 
+    printf("PID: %d\n", main_pid);
     // process validator responses
     tester_mq_msg tester_msg;
     while(!rcd_completed || comm_summary.rcd < expected_rcd) {
@@ -295,7 +296,6 @@ int main() {
     // clean up
     collect_sender(&err);
     HANDLE_ERR_EXIT_WITH_MSG("Unexpected fail while collecting message sender");
-    printf("PID: %d\n", main_pid);
-    print_comm_summary(&comm_summary);
+    print_comm_summary(&comm_summary, false);
     return 0;
 }
