@@ -16,6 +16,10 @@ void log_formatted(const char *fmt, ...) {
     }
 }
 
-void print_comm_summary(const comm_sumary_t *comm_summary) {
-    printf("Snt: %zu\nRcd: %zu\nAcc: %zu\n", comm_summary->snt, comm_summary->rcd, comm_summary->acc);
+void print_comm_summary(const comm_sumary_t *comm_summary, bool rcd_first) {
+    if(rcd_first) {
+        printf("Rcd: %zu\nSnt: %zu\nAcc: %zu\n", comm_summary->rcd, comm_summary->snt, comm_summary->acc);
+    } else {
+        printf("Snt: %zu\nRcd: %zu\nAcc: %zu\n", comm_summary->snt, comm_summary->rcd, comm_summary->acc);
+    }
 }

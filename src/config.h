@@ -51,7 +51,7 @@ typedef struct comm_summary{
 } comm_sumary_t;
 
 /// prints communication summary to stdout
-extern void print_comm_summary(const comm_sumary_t *comm_summary);
+extern void print_comm_summary(const comm_sumary_t *comm_summary, bool rcd_first);
 
 
 #endif //PW_VALIDATOR_CONFIG_H
